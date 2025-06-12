@@ -8,6 +8,7 @@ import os
 class GUI():
     def __init__(self):
         self.savedGames=[]
+        self.buttons = []
         self.root = tk.Tk()
         self.root.geometry('600x600')
         self.root.protocol("WM_DELETE_WINDOW", lambda: self.root.destroy())
@@ -98,7 +99,7 @@ class GUI():
                         self.root, 
                         text=piece.text,
                         fg=piece.colour,
-                        bg=piece.bg,
+                        bg=self.backgroundColour(piece),
                         height=2, 
                         width=4, 
                         font='Helvetica 16 bold',
@@ -108,6 +109,25 @@ class GUI():
                 row.append(b)
             self.buttons.append(row)
             
+    def backgroundColour(self, piece):
+        selected_piece_colour = "light green"
+        black_square_colour = "royal blue"
+        white_square_colour = "wheat1"
+        possible_move_colour = "gold"
+        possible_capture_colour = "pink"
+        if piece.bg == 0:
+            if (piece.loc[0]+piece.loc[1]) % 2 == 0:
+                colour = black_square_colour
+            else:
+                colour = white_square_colour
+        elif piece.bg == 1:
+            colour = selected_piece_colour
+        elif piece.bg == 2:
+            colour = possible_move_colour
+        elif piece.bg == 3:
+            colour = possible_capture_colour
+        return colour
+    
     def viewBoard(self):
         self.clear()
         self.updateButtons()
@@ -141,7 +161,7 @@ class GUI():
                         self.root, 
                         text=piece.text,
                         fg=piece.colour,
-                        bg=piece.bg,
+                        bg=self.backgroundColour(piece),
                         height=2, 
                         width=4, 
                         font='Helvetica 16 bold',
@@ -155,21 +175,18 @@ class GUI():
         return
         
     def resignButton(self):
-        self.game.switchTurn()
-        self.game.winner=self.game.turn
-        self.game.winMethod='resignation'
-        self.game.gameOver=True
+        self.game.resign()
         self.gameOverBox()
         
     def updateBoard(self):
         #This funciton will display the board to the user or update it when called.
         for i in range(8):
             for j in range(8):
-                p=self.game[i, j]
+                piece = self.game[i, j]
                 self.buttons[i][j].config(
-                    text=p.text,
-                    bg=p.bg,
-                    fg=p.colour
+                    text=piece.text,
+                    bg=self.backgroundColour(piece),
+                    fg=piece.colour
                     )
         self.root.mainloop()
         return
@@ -223,17 +240,8 @@ class GUI():
         top.mainloop()
         return
     
-    def promotionButton(self, window, text):
-        if text == 'Queen':
-            self.game[self.game.second.loc]=Queen(self.game.second.loc, self.game.turn)
-        elif text == 'Knight':
-            self.game[self.game.second.loc]=Knight(self.game.second.loc, self.game.turn)
-        elif text == 'Bishop':
-            self.game[self.game.second.loc]=Bishop(self.game.second.loc, self.game.turn)
-        else:
-            self.game[self.game.second.loc]=Rook(self.game.second.loc, self.game.turn)
-        
-        self.game[self.game.savedLoc]=Empty(self.game.savedLoc)
+    def promotionButton(self, window, piece_name):
+        self.game.promotePawn(piece_name)
         window.destroy()
         self.endOfMove()
         self.updateBoard()
