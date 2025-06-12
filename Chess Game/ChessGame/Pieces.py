@@ -7,7 +7,7 @@ class Piece:
     def __init__(self, loc, colour, text): 
         self.loc = loc
         self.colour = colour
-        self.bg = 'light blue'
+        self.bg = 0
         self.text = text
         self.moved = False
         

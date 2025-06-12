@@ -89,7 +89,7 @@ class Game:
 
         '''
         time=datetime.datetime.strftime(datetime.datetime.now(),"%Y_%m_%d_%H_%M_%S")
-        self.gameCode= wName+'_'+bName+'_'+time
+        self.gameCode= wName + '_' + bName + '_' + time
         return
     
     def checkMove(self):
@@ -180,22 +180,34 @@ class Game:
             DESCRIPTION.
 
         '''
-        promotePawn=False
+        promotePawn = False
         firstLoc = self.first.loc
-        self.savedLoc=firstLoc # Need this saved for GUI.promotePawn() method
+        self.savedLoc = firstLoc # Need this saved for GUI.promotePawn() method
         secondLoc = self.second.loc
-        self[secondLoc]=self[firstLoc] 
+        self[secondLoc] = self[firstLoc] 
         self.first.changeLoc(secondLoc)
         self[firstLoc] = Empty(firstLoc)#adds an empyty square where the first piece was
-        if self.first.__class__.__name__=='King' and abs(firstLoc[1]-secondLoc[1])==2:
+        if self.first.__class__.__name__ == 'King' and abs(firstLoc[1] - secondLoc[1]) == 2:
             # Check if king is making a castling move. If so, then swap the rook
             if secondLoc[1]==2:
                 self[secondLoc[0], 0], self[secondLoc[0], 3] = self[secondLoc[0], 3], self[secondLoc[0], 0]
             else:
                 self[secondLoc[0], 7], self[secondLoc[0], 5] = self[secondLoc[0], 5], self[secondLoc[0], 7]     
-        elif self.first.__class__.__name__=='Pawn' and self.second.loc[0]==(self.first.homeRow+6*self.first.rowChange):
-            promotePawn=True
+        elif self.first.__class__.__name__ == 'Pawn' and self.second.loc[0] == (self.first.homeRow + 6*self.first.rowChange):
+            promotePawn = True
+            
         return promotePawn
+    
+    def promotePawn(self, piece_name):
+        if piece_name == 'Queen':
+            self[self.second.loc] = Queen(self.second.loc, self.turn)
+        elif piece_name == 'Knight':
+            self[self.second.loc] = Knight(self.second.loc, self.turn)
+        elif piece_name == 'Bishop':
+            self[self.second.loc] = Bishop(self.second.loc, self.turn)
+        else:
+            self[self.second.loc] = Rook(self.second.loc, self.turn)
+        self[self.savedLoc] = Empty(self.savedLoc)
  
     def checkGameOver(self):
         '''
@@ -225,6 +237,12 @@ class Game:
         self.switchTurn()
         self.winner=self.turn
         return True
+    
+    def resign(self):
+        self.switchTurn()
+        self.winner = self.turn
+        self.winMethod = 'resignation'
+        self.gameOver = True
         
     def __getitem__(self, loc):
         if loc[0]>7 or loc[0]<0 or loc[1]>7 or loc[1]<0:
@@ -253,14 +271,14 @@ class Game:
         for piece in possMoves:
             if  not piece.isEmpty():
                 if piece.colour != self.turn:
-                    piece.bg = 'pink'
+                    piece.bg = 3
             else:
-                piece.bg = 'light yellow'
-        selectedPiece.bg = 'light green'
+                piece.bg = 2
+        selectedPiece.bg = 1
         return
 
     def deHighlightMoves(self):
         for row in self.board:
             for piece in row:
-                piece.bg = 'light blue'
+                piece.bg = 0
         return
