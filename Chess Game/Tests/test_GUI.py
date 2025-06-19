@@ -2,7 +2,7 @@
 
 
 import pytest, sys, ChessGame, unittest, tkinter as tk
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 class MovePiecesTestCase(unittest.TestCase):
     @classmethod
@@ -180,7 +180,7 @@ class GUITestCase(unittest.TestCase):
 
         #act 
         self.GUI.game.highlightMoves(self.GUI.game, self.GUI.game[[0,0]]) #Select rook
-        self.GUI.updateButtons()
+        self.GUI.createButtons()
         
         # assert
         self.assertEqual(self.GUI.buttons[0][0].cget('bg'), "light green")
@@ -188,5 +188,22 @@ class GUITestCase(unittest.TestCase):
         self.assertEqual(self.GUI.buttons[0][1].cget('bg'), "wheat1")
         self.assertEqual(self.GUI.buttons[1][0].cget('bg'), "gold")
         self.assertEqual(self.GUI.buttons[6][0].cget('bg'), "pink")
-    
+        
+    @patch('tkinter.Tk')
+    def test_WhenSelectTwoWhitePieces_CheckSecondPieceHighlighted(self, mock_tk):
+        # arrange 
+        mock_root = MagicMock()
+        mock_tk.return_value = mock_root
+        self.GUI = ChessGame.GUI(mock_root)
+        self.GUI.game = ChessGame.Game()
+        self.GUI.createButtons()
+        self.GUI.game.highlightMoves = MagicMock()
+
+        #act 
+        self.GUI.buttonPressed([1,1])
+        self.GUI.buttonPressed([1,2])
+
+        # assert
+        self.assertEqual(self.GUI.game.highlightMoves.call_count, 2)
+
 

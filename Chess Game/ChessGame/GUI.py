@@ -6,10 +6,13 @@ import datetime
 import os
 
 class GUI():
-    def __init__(self):
+    def __init__(self, root=None):
         self.savedGames=[]
         self.buttons = []
-        self.root = tk.Tk()
+        if root == None:
+            self.root = tk.Tk()
+        else:
+            self.root = root
         self.root.geometry('600x600')
         self.root.protocol("WM_DELETE_WINDOW", lambda: self.root.destroy())
     
@@ -42,10 +45,10 @@ class GUI():
             Black player name, from fileName.
 
         '''
-        n=fileName.find('_')
-        wName=fileName[:n]
-        n1=fileName.find('_',n+1) 
-        bName=fileName[n+1:n1]
+        n = fileName.find('_')
+        wName = fileName[:n]
+        n1 = fileName.find('_', n+1) 
+        bName = fileName[n+1:n1]
         return wName, bName
         
     def savedGamesMenu(self):
@@ -90,7 +93,7 @@ class GUI():
         self.viewBoard()
         return
     
-    def updateButtons(self):
+    def createButtons(self):
         for i in range(8):
             row = []
             for j in range(8):
@@ -130,13 +133,16 @@ class GUI():
     
     def viewBoard(self):
         self.clear()
-        self.updateButtons()
-        self.textbox=tk.Text(self.root, height=4, width=30)
-        self.textbox.grid(row=8, column=0, columnspan=4, rowspan=2)
-        tk.Button(self.root, text='Save Game', height=2, width=16, command=self.saveGame).grid(row=8, column=6, columnspan=2)
+        self.createButtons()
+
+        self.textbox_turn = tk.Text(self.root, height=2, width=30)
+        self.textbox_turn.grid(row=0, column=8, columnspan=4)
+        tk.Button(self.root, text='Main Menu', height=2, width=16, command=self.askSave).grid(row=1, column=8, columnspan=2)
+        tk.Button(self.root, text='Save Game', height=2, width=16, command=self.saveGame).grid(row=2, column=10, columnspan=2)
         if not self.game.gameOver:
-            tk.Button(self.root, text='Resign', height=2, width=16, command=self.resignButton).grid(row=9, column=6, columnspan=2)
-        tk.Button(self.root, text='Main Menu', height=2, width=16, command=self.askSave).grid(row=9, column=4, columnspan=2)
+            tk.Button(self.root, text='Resign', height=2, width=16, command=self.resignButton).grid(row=2, column=8, columnspan=2)
+        self.textbox=tk.Text(self.root, height=4, width=30)
+        self.textbox.grid(row=3, column=8, columnspan=4, rowspan=1)
         self.root.mainloop()
         return
     
@@ -193,8 +199,8 @@ class GUI():
     
     def buttonPressed(self, loc):
         piece = self.game[loc]
-        if self.game.first==None:
-            # Player is selecting the piece to move
+        if self.game.first == None:
+            # Player is selecting the first square (piece to move)
             legal, errorString = self.game.checkSelection(piece)
             if legal == True:
                 self.game.first = piece
@@ -203,11 +209,16 @@ class GUI():
             else:
                 self.printTxt(errorString)
         else:
-            # Player is selecting the square to move to
+            # Player is selecting the second square (to move to)
             if piece.loc == self.game.first.loc:
                 self.game.first = None
                 self.game.second = None
                 self.game.deHighlightMoves()
+                self.updateBoard()
+            elif piece.colour == self.game.turn:
+                self.game.deHighlightMoves()
+                self.game.first = piece
+                self.game.highlightMoves(self, piece)
                 self.updateBoard()
             else:
                 self.game.second = piece
@@ -261,7 +272,7 @@ class GUI():
             else:
                 self.printTxt(self.game.turn+ ' is in check! \n'+self.game.turn+' to move.')
         else:
-            self.printTxt(self.game.turn+' to move.')
+            self.displayTurn()
         return
     
     def gameOverBox(self):
@@ -281,8 +292,15 @@ class GUI():
     
     def printTxt(self, text):
         self.textbox.configure(state='normal')
-        self.textbox.insert('end', text+'\n')
+        self.textbox.insert('end', text + '\n')
         self.textbox.config(state='disabled')
+        return
+    
+    def displayTurn(self):
+        self.textbox_turn.configure(state='normal')
+        self.textbox_turn.delete('1.0', 'end')
+        self.textbox_turn.insert('end', self.game.turn + ' to move.')
+        self.textbox_turn.config(state='disabled')
         return
     
     def clearTxt(self):
