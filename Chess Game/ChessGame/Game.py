@@ -17,12 +17,13 @@ class Game:
         self.winner = None
         self.wName = '' # Name of white player
         self.bName = '' # Name of black player
-        self.winMethod='' # String which holds the way in which player won (e.g. 'checkmate')     
+        self.winMethod ='' # String which holds the way in which player won (e.g. 'checkmate')     
         self.board = [] # A matrix of all the pieces in the board
         self.first = None # The first piece that the player has clicked (on button press)
         self.second = None # The second piece the palyer has clicked
         self.turn = 'White' # The curren turn
-        self.saved=False # Records whether the player has chosen to save the game
+        self.saved = False # Records whether the player has chosen to save the game
+        self.moveNumber = 1
         
         if pieces == None:
             pieces=[['r','h','b','q','k','b','h','r'],
@@ -141,7 +142,7 @@ class Game:
         the player is in check and then undoes the move.
         '''
         first  = self.first
-        firstLoc=self.first.loc[:] # Make a value copy, not a reference copy
+        firstLoc = self.first.loc[:] # Make a value copy, not a reference copy
         second = self.second
         self.first.loc = second.loc[:]#moves first piece to loc of second
         self[second.loc]=self.first 
@@ -160,15 +161,23 @@ class Game:
         TYPE Bool
             Checks whether the current player is in check in the current layout.
         '''
-        king=self.currKing()
+        king = self.currKing()
         return king.checkCheck(self)
     
     def switchTurn(self):
         if self.turn =='White':
-            self.turn= 'Black'
+            self.turn = 'Black'
         else:
             self.turn = 'White' 
+            self.moveNumber += 1
         return
+    
+    def updateDoubleJumpBools(self):
+        for row in self.board:
+            for piece in row:
+                if piece.__class__.__name__ == 'Pawn':
+                    if piece.colour != self.turn:
+                        piece.doubleJumpedLastMove = False
 
     def makeMove(self):
         '''
@@ -189,13 +198,18 @@ class Game:
         self[firstLoc] = Empty(firstLoc)#adds an empyty square where the first piece was
         if self.first.__class__.__name__ == 'King' and abs(firstLoc[1] - secondLoc[1]) == 2:
             # Check if king is making a castling move. If so, then swap the rook
-            if secondLoc[1]==2:
+            if secondLoc[1] == 2:
                 self[secondLoc[0], 0], self[secondLoc[0], 3] = self[secondLoc[0], 3], self[secondLoc[0], 0]
             else:
                 self[secondLoc[0], 7], self[secondLoc[0], 5] = self[secondLoc[0], 5], self[secondLoc[0], 7]     
-        elif self.first.__class__.__name__ == 'Pawn' and self.second.loc[0] == (self.first.homeRow + 6*self.first.rowChange):
+        elif self.first.__class__.__name__ == 'Pawn' and self.second.loc[0] == (self.first.homeRow + 6 * self.first.rowChange):
             promotePawn = True
-            
+        elif self.first.__class__.__name__ == 'Pawn' and self.second.__class__.__name__ == 'Empty' and (firstLoc[1] - secondLoc[1]) != 0:
+            #Check if en passant has occurred
+            enPassantPawnLocation = [firstLoc[0], secondLoc[1]]
+            self[enPassantPawnLocation] = Empty(enPassantPawnLocation)
+           
+        self.updateDoubleJumpBools()
         return promotePawn
     
     def promotePawn(self, piece_name):
@@ -232,10 +246,10 @@ class Game:
                             return False # If any move does not put the player in check, then return for efficiency.
         self.first = first
         self.second = second
-        self.gameOver=True
-        self.winMethod='checkmate'
+        self.gameOver = True
+        self.winMethod = 'checkmate'
         self.switchTurn()
-        self.winner=self.turn
+        self.winner = self.turn
         return True
     
     def resign(self):

@@ -28,8 +28,8 @@ class Piece:
         return False
     
     def changeLoc(self, newLoc):
-        self.loc=newLoc[:]
-        self.moved=True
+        self.loc = newLoc[:]
+        self.moved = True
         return
     
     def scanAlong(self, board, rowScan, columnScan):
@@ -68,33 +68,68 @@ class Empty(Piece):
 class Pawn(Piece):
     def __init__(self, loc, colour):
         Piece.__init__(self, loc, colour, '♙')
+        self.doubleJumpedLastMove = False
         if self.colour == 'Black':
             self.rowChange = -1 
             self.homeRow = 6
         else:
             self.rowChange = 1
             self.homeRow = 1
+            
+    def changeLoc(self, newLoc):
+        if self.__class__.__name__ == 'Pawn' and abs(newLoc[0] - self.loc[0]) == 2:
+            self.doubleJumpedLastMove = True
+        else: 
+            self.doubleJumpedLastMove = False
+        self.loc = newLoc[:]
+        self.moved = True
+        return
 
     def possMoves(self, board):
         possMoves = []
         startRow = self.loc[0]
         startColumn = self.loc[1]
-        if (not self.moved) and (board.empty([startRow+self.rowChange, startColumn]))and board.empty([startRow+2*self.rowChange, startColumn]):
-            possMoves.append(board[startRow+2*self.rowChange, startColumn])
+        
+        #Move 2 forward
+        if (not self.moved) and (board.empty([startRow + self.rowChange, startColumn]))and board.empty([startRow + 2*self.rowChange, startColumn]):
+            possMoves.append(board[startRow + 2*self.rowChange, startColumn])
 
-        x = board[startRow+self.rowChange, startColumn]
-        if x.isEmpty():
-            possMoves.append(x)
-        x = board[startRow+self.rowChange, startColumn-1]
-        if x != False:
-            if not x.isEmpty():
-                if x.colour != self.colour:
-                    possMoves.append(x)
-        x = board[startRow+self.rowChange, startColumn+1]
-        if x != False:
-            if not x.isEmpty():
-                if x.colour != self.colour:
-                    possMoves.append(x)
+        #Move 1 forward
+        square_moveTo = board[startRow + self.rowChange, startColumn]
+        if square_moveTo.isEmpty():
+            possMoves.append(square_moveTo)
+            
+        #Take forward left    
+        square_moveTo = board[startRow + self.rowChange, startColumn - 1]
+        if square_moveTo != False:
+            if not square_moveTo.isEmpty():
+               if square_moveTo.colour != self.colour:
+                    possMoves.append(square_moveTo)
+                    
+        #Take forward right     
+        square_moveTo = board[startRow + self.rowChange, startColumn + 1]
+        if square_moveTo != False:
+            if not square_moveTo.isEmpty():
+                if square_moveTo.colour != self.colour:
+                    possMoves.append(square_moveTo)
+                    
+        #En Passant forward left    
+        square_moveTo = board[startRow + self.rowChange, startColumn - 1]
+        if square_moveTo != False:
+            if square_moveTo.isEmpty():
+               possibleEnPassantPawn = board[startRow, startColumn - 1]
+               if possibleEnPassantPawn.__class__.__name__ == 'Pawn':
+                   if possibleEnPassantPawn.colour != self.colour and possibleEnPassantPawn.doubleJumpedLastMove == True:
+                       possMoves.append(square_moveTo)
+                                          
+         #En Passant forward right    
+        square_moveTo = board[startRow + self.rowChange, startColumn + 1]
+        if square_moveTo != False:
+            if square_moveTo.isEmpty():
+               possibleEnPassantPawn = board[startRow, startColumn + 1]
+               if possibleEnPassantPawn.__class__.__name__ == 'Pawn':
+                   if possibleEnPassantPawn.colour != self.colour and possibleEnPassantPawn.doubleJumpedLastMove == True:
+                       possMoves.append(square_moveTo)
         return possMoves
           
 class Bishop(Piece):
