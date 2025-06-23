@@ -37,6 +37,49 @@ class MovePiecesTestCase(unittest.TestCase):
     def test_MovePawnTwoForward_WhenNewGame_CheckMoveReturnTrue(self):
         self.MovePiece_WhenNewGame_CheckMoveValid([1, 0], [3, 0], (True, ""))
         
+    def test_CheckEnPassant_WhenInPosition(self):
+        # arrange 
+        pieces = [  ['r','h','b','' ,'k','' ,'' ,'r'],
+                    ['p','p','p','p','' ,'p','p','p'],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'P','p','P','' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['P','P','P','' ,'P','' ,'P','P'],
+                    ['R','H','B','Q','K','B','H','R']]
+
+        game = ChessGame.Game(pieces)
+
+        #act 
+        game[[4,3]].doubleJumpedLastMove = True #Black queen pawn jumped 2 last move
+        game[[4,5]].doubleJumpedLastMove = False #Black king-side bishop pawn did not jump 2 last move
+        # assert
+        self.assertIn(game[[5, 3]], game[[4, 4]].possMoves(game))
+        self.assertNotIn(game[[5, 5]], game[[4, 4]].possMoves(game))
+        
+    def test_CheckPawnRemoved_WhenPawnTakesEnPassant(self):
+        # arrange 
+        pieces = [  ['r','h','b','' ,'k','' ,'' ,'r'],
+                    ['p','p','p','p','' ,'p','p','p'],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'P','p','' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['P','P','P','' ,'P','' ,'P','P'],
+                    ['R','H','B','Q','K','B','H','R']]
+
+        game = ChessGame.Game(pieces)
+        game[[4,3]].doubleJumpedLastMove = True #Black queen pawn jumped 2 last move
+        self.game = game
+        
+        #act 
+        self.game.first = self.game[[4,4]]
+        self.game.second = self.game[[5,3]]
+        self.game.makeMove()
+        
+        # assert
+        self.assertEqual(self.game[[4, 3]].__class__.__name__, 'Empty')
+        
     #  Sad path
     def test_MovePawnThreeForward_WhenNewGame_CheckMoveReturnFalse(self):
         self.MovePiece_WhenNewGame_CheckMoveValid([1, 0], [4, 0],  (False, "That piece can't move that way"))
@@ -95,7 +138,7 @@ class MovePiecesTestCase(unittest.TestCase):
         #act 
          
         # assert
-        self.assertNotIn([0, 6], game[[0, 4]].possMoves(game))
+        self.assertNotIn(game[[0, 6]], game[[0, 4]].possMoves(game))
      
     def test_MoveKingForwardLeft_WhenNewGame_CheckMoveReturnFalse(self):
         self.MovePiece_WhenNewGame_CheckMoveValid([0, 4], [1, 4], (False, "You can't take your own piece"))
@@ -160,10 +203,13 @@ class MovePiecesTestCase(unittest.TestCase):
         
 class GUITestCase(unittest.TestCase):
     @classmethod
+    # @patch('tkinter.Tk')
     def setup_class(cls):
-        cls.game = ChessGame.Game()
-        cls.GUI = ChessGame.GUI()
-        cls.GUI.game = cls.game    
+        mock_root = MagicMock()
+        mock_tk = tk.Tk
+        mock_tk.return_value = mock_root
+        cls.GUI = ChessGame.GUI(mock_root)
+        cls.GUI.game = ChessGame.Game()   
         
     def test_WhenNewGame_CheckBoardColours(self):
         # arrange 
@@ -175,7 +221,7 @@ class GUITestCase(unittest.TestCase):
                     ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
                     ['P','P','P','P','P','P','P','P'],
                     ['R','H','B','Q','K','B','H','R']]
-
+        self.GUI = ChessGame.GUI()
         self.GUI.game = ChessGame.Game(pieces)
 
         #act 
@@ -189,13 +235,9 @@ class GUITestCase(unittest.TestCase):
         self.assertEqual(self.GUI.buttons[1][0].cget('bg'), "gold")
         self.assertEqual(self.GUI.buttons[6][0].cget('bg'), "pink")
         
-    @patch('tkinter.Tk')
-    def test_WhenSelectTwoWhitePieces_CheckSecondPieceHighlighted(self, mock_tk):
+
+    def test_WhenSelectTwoWhitePieces_CheckSecondPieceHighlighted(self):
         # arrange 
-        mock_root = MagicMock()
-        mock_tk.return_value = mock_root
-        self.GUI = ChessGame.GUI(mock_root)
-        self.GUI.game = ChessGame.Game()
         self.GUI.createButtons()
         self.GUI.game.highlightMoves = MagicMock()
 
@@ -205,5 +247,15 @@ class GUITestCase(unittest.TestCase):
 
         # assert
         self.assertEqual(self.GUI.game.highlightMoves.call_count, 2)
+
+    def test_WhenNewGame_CheckTurnDisplayed(self):
+        # arrange 
+        self.GUI.displayTurn = MagicMock()
+        self.GUI.viewBoard()
+
+        #act 
+
+        # assert
+        self.assertEqual(self.GUI.displayTurn.call_count, 1)
 
 

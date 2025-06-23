@@ -134,7 +134,6 @@ class GUI():
     def viewBoard(self):
         self.clear()
         self.createButtons()
-
         self.textbox_turn = tk.Text(self.root, height=2, width=30)
         self.textbox_turn.grid(row=0, column=8, columnspan=4)
         tk.Button(self.root, text='Main Menu', height=2, width=16, command=self.askSave).grid(row=1, column=8, columnspan=2)
@@ -143,6 +142,7 @@ class GUI():
             tk.Button(self.root, text='Resign', height=2, width=16, command=self.resignButton).grid(row=2, column=8, columnspan=2)
         self.textbox=tk.Text(self.root, height=4, width=30)
         self.textbox.grid(row=3, column=8, columnspan=4, rowspan=1)
+        self.displayTurn()
         self.root.mainloop()
         return
     
@@ -244,10 +244,10 @@ class GUI():
     def promotePawn(self):
         top = tk.Toplevel(self.root)
         tk.Label(top, text='Pawn promotion. Choose your piece').grid(row=0,column=0,columnspan=2)
-        tk.Button(top, text='Queen', command=lambda window=top: self.promotionButton(window,'Queen')).grid(row=1,column=0)
-        tk.Button(top, text='Knight', command=lambda window=top: self.promotionButton(window,'Knight')).grid(row=1,column=1)
-        tk.Button(top, text='Bishop', command=lambda window=top: self.promotionButton(window,'Bishop')).grid(row=2,column=0)
-        tk.Button(top, text='Rook', command=lambda window=top: self.promotionButton(window,'Rook')).grid(row=2,column=1)
+        tk.Button(top, text='Queen', command=lambda window=top: self.promotionButton(window,'Queen')).grid(row=1, column=0)
+        tk.Button(top, text='Knight', command=lambda window=top: self.promotionButton(window,'Knight')).grid(row=1, column=1)
+        tk.Button(top, text='Bishop', command=lambda window=top: self.promotionButton(window,'Bishop')).grid(row=2, column=0)
+        tk.Button(top, text='Rook', command=lambda window=top: self.promotionButton(window,'Rook')).grid(row=2, column=1)
         top.mainloop()
         return
     
@@ -259,18 +259,18 @@ class GUI():
         return
     
     def endOfMove(self):
-        self.clearTxt()
+        self.clearText()
         self.game.deHighlightMoves()
         self.game.switchTurn()
-        self.game.first=None
-        self.game.second=None
+        self.game.first = None
+        self.game.second = None
         if self.game.inCheck():
             if self.game.checkGameOver():
                 self.game.switchTurn()
-                self.printTxt(self.game.turn+ ' wins!')
+                self.printTxt(self.game.turn + ' wins!')
                 self.gameOverBox()
             else:
-                self.printTxt(self.game.turn+ ' is in check! \n'+self.game.turn+' to move.')
+                self.printTxt(self.game.turn + ' is in check! \n' + self.game.turn + ' to move.')
         else:
             self.displayTurn()
         return
@@ -287,11 +287,12 @@ class GUI():
         
     def gameOverButton(self, window):
         window.destroy()
-        self.viewBoard()
+        self.viewBoard_inactive(self.game)
         return
     
     def printTxt(self, text):
         self.textbox.configure(state='normal')
+        self.textbox.delete('1.0', 'end')
         self.textbox.insert('end', text + '\n')
         self.textbox.config(state='disabled')
         return
@@ -303,7 +304,7 @@ class GUI():
         self.textbox_turn.config(state='disabled')
         return
     
-    def clearTxt(self):
+    def clearText(self):
         self.textbox.configure(state='normal')
         self.textbox.delete('1.0', 'end')
         self.textbox.config(state='disabled')
