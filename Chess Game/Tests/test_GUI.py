@@ -54,8 +54,8 @@ class MovePiecesTestCase(unittest.TestCase):
         game[[4,3]].doubleJumpedLastMove = True #Black queen pawn jumped 2 last move
         game[[4,5]].doubleJumpedLastMove = False #Black king-side bishop pawn did not jump 2 last move
         # assert
-        self.assertIn(game[[5, 3]], game[[4, 4]].possMoves(game))
-        self.assertNotIn(game[[5, 5]], game[[4, 4]].possMoves(game))
+        self.assertIn(game[5, 3], game[4, 4].possMoves(game))
+        self.assertNotIn(game[5, 5], game[4, 4].possMoves(game))
         
     def test_CheckPawnRemoved_WhenPawnTakesEnPassant(self):
         # arrange 
@@ -214,20 +214,20 @@ class GUITestCase(unittest.TestCase):
     def test_WhenNewGame_CheckBoardColours(self):
         # arrange 
         pieces = [  ['r','h','b','' ,'k','' ,'' ,'r'],
-                    ['' ,'p','p','p','p','p','p','p'],
+                    ['' ,'' ,'p','p','p','p','p','p'],
                     ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
                     ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'p','P','' ,'' ,'' ,'' ,'' ],
                     ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
-                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
-                    ['P','P','P','P','P','P','P','P'],
+                    ['P','P','' ,'P','P','P','P','P'],
                     ['R','H','B','Q','K','B','H','R']]
         self.GUI = ChessGame.GUI()
         self.GUI.game = ChessGame.Game(pieces)
 
         #act 
-        self.GUI.game.highlightMoves(self.GUI.game, self.GUI.game[[0,0]]) #Select rook
+        self.GUI.game.highlightMoves(self.GUI.game, self.GUI.game[0, 0]) #Select rook
         self.GUI.createButtons()
-        
+
         # assert
         self.assertEqual(self.GUI.buttons[0][0].cget('bg'), "light green")
         self.assertEqual(self.GUI.buttons[0][2].cget('bg'), "royal blue")
@@ -235,6 +235,15 @@ class GUITestCase(unittest.TestCase):
         self.assertEqual(self.GUI.buttons[1][0].cget('bg'), "gold")
         self.assertEqual(self.GUI.buttons[6][0].cget('bg'), "pink")
         
+        # Ensure squares are highlighted pink for en passant
+        #act
+        self.GUI.game.deHighlightMoves()
+        self.GUI.game[4, 2].doubleJumpedLastMove = True #Black advanced pawn double jumped last move
+        self.GUI.game.highlightMoves(self.GUI.game, self.GUI.game[4, 1]) #Highlight white advanced pawn
+        self.GUI.updateBoard()
+
+        # assert
+        self.assertEqual(self.GUI.buttons[5][2].cget('bg'), "pink")
 
     def test_WhenSelectTwoWhitePieces_CheckSecondPieceHighlighted(self):
         # arrange 
@@ -258,4 +267,31 @@ class GUITestCase(unittest.TestCase):
         # assert
         self.assertEqual(self.GUI.displayTurn.call_count, 1)
 
+    def test_WhenSwitchTurns_BoardOrientationFlips(self):
+        # arrange 
+        self.GUI = ChessGame.GUI()
+        self.GUI.game = ChessGame.Game()
+        self.GUI.createButtons()
+        # assert
+        self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'White')
+        
+        #act 
+        self.GUI.flipBoardEachTurn.set(True)
+        self.GUI.game.turn = 'Black'
+        self.GUI.game.highlightMoves(self.GUI.game, self.GUI.game[6, 1])#Highlight black pawn
+        self.GUI.updateBoard()
+        # self.GUI.viewBoard()
+
+        # assert
+        self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'Black')
+        self.assertEqual(self.GUI.buttons[2][1].cget('bg'), 'gold') # Square in front of highlighted pawn
+
+        
+        #act 
+        self.GUI.flipBoardEachTurn.set(False)
+        self.GUI.game.turn = 'Black'
+        self.GUI.updateBoard()
+        
+        # assert
+        self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'White')
 
