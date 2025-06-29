@@ -10,6 +10,7 @@ class Piece:
         self.bg = 0
         self.text = text
         self.moved = False
+        self.enPassantSquare = False
         
     def __eq__(self, other):
         try:
@@ -64,7 +65,7 @@ class Empty(Piece):
     '''
     def __init__(self,loc):
         Piece.__init__(self, loc, 'red', "")
-
+        
 class Pawn(Piece):
     def __init__(self, loc, colour):
         Piece.__init__(self, loc, colour, '♙')
@@ -120,6 +121,7 @@ class Pawn(Piece):
                possibleEnPassantPawn = board[startRow, startColumn - 1]
                if possibleEnPassantPawn.__class__.__name__ == 'Pawn':
                    if possibleEnPassantPawn.colour != self.colour and possibleEnPassantPawn.doubleJumpedLastMove == True:
+                       square_moveTo.enPassantSquare = True
                        possMoves.append(square_moveTo)
                                           
          #En Passant forward right    
@@ -129,6 +131,7 @@ class Pawn(Piece):
                possibleEnPassantPawn = board[startRow, startColumn + 1]
                if possibleEnPassantPawn.__class__.__name__ == 'Pawn':
                    if possibleEnPassantPawn.colour != self.colour and possibleEnPassantPawn.doubleJumpedLastMove == True:
+                       square_moveTo.enPassantSquare = True
                        possMoves.append(square_moveTo)
         return possMoves
           
@@ -185,34 +188,34 @@ class Rook(Piece):
 class King(Piece):
     def __init__(self, loc, colour):
         Piece.__init__(self, loc, colour, '♔')
-        if colour=='White':
-            self.kingDirection=-1
+        if colour == 'White':
+            self.kingDirection = -1
         else:
-            self.kingDirection=1
+            self.kingDirection = 1
 
     def possMoves(self, board):
         possMoves = []
         startRow = self.loc[0]
         startColumn = self.loc[1]
-        for i in range(-1,2):
-            for j in range(-1,2):
-                square = board[startRow+i,startColumn+j]
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                square = board[startRow + i, startColumn + j]
                 if square != False:
                     if square.__class__.__name__ == 'Empty':
                         possMoves.append(square)
                     elif square.colour != self.colour:
                         possMoves.append(square)
         if not self.moved: # Check whether the king can make a castle
-            r=board[self.loc[0], 0]
+            r = board[self.loc[0], 0]
             if self.checkCheck(board) == False:
-                if r.__class__.__name__=='Rook' and r.moved==False:
-                    pieces=self.scanAlong(board,0, -1)
-                    if len(pieces)==3:
+                if r.__class__.__name__== 'Rook' and r.moved == False:
+                    pieces = self.scanAlong(board, 0, -1)
+                    if len(pieces) == 3:
                         possMoves.append(board[self.loc[0], 2])
-                r=board[self.loc[0], 7]
-                if r.__class__.__name__=='Rook' and r.moved==False:
-                    pieces=self.scanAlong(board,0, 1)
-                    if len(pieces)==2:
+                r = board[self.loc[0], 7]
+                if r.__class__.__name__ == 'Rook' and r.moved == False:
+                    pieces = self.scanAlong(board, 0, 1)
+                    if len(pieces) == 2:
                         possMoves.append(board[self.loc[0], 6])
         return possMoves
 

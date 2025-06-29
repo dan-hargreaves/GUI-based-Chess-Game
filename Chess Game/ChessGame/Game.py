@@ -15,8 +15,8 @@ class Game:
     def __init__(self, pieces=None):
         self.gameOver = False
         self.winner = None
-        self.wName = '' # Name of white player
-        self.bName = '' # Name of black player
+        self.whitePlayerName = '' # Name of white player
+        self.blackPlayerName = '' # Name of black player
         self.winMethod ='' # String which holds the way in which player won (e.g. 'checkmate')     
         self.board = [] # A matrix of all the pieces in the board
         self.first = None # The first piece that the player has clicked (on button press)
@@ -73,7 +73,7 @@ class Game:
             self.board.append(row)
         return
     
-    def createGameCode(self, wName, bName):
+    def createGameCode(self):
         '''
         Parameters
         ----------
@@ -90,7 +90,7 @@ class Game:
 
         '''
         time=datetime.datetime.strftime(datetime.datetime.now(),"%Y_%m_%d_%H_%M_%S")
-        self.gameCode= wName + '_' + bName + '_' + time
+        self.gameCode = self.whitePlayerName + '_' + self.blackPlayerName + '_' + time
         return
     
     def checkMove(self):
@@ -197,11 +197,18 @@ class Game:
         self.first.changeLoc(secondLoc)
         self[firstLoc] = Empty(firstLoc)#adds an empyty square where the first piece was
         if self.first.__class__.__name__ == 'King' and abs(firstLoc[1] - secondLoc[1]) == 2:
-            # Check if king is making a castling move. If so, then swap the rook
-            if secondLoc[1] == 2:
-                self[secondLoc[0], 0], self[secondLoc[0], 3] = self[secondLoc[0], 3], self[secondLoc[0], 0]
-            else:
-                self[secondLoc[0], 7], self[secondLoc[0], 5] = self[secondLoc[0], 5], self[secondLoc[0], 7]     
+            # If king is making a castling move, then swap the rook
+            if secondLoc[1] == 2: 
+                #Queen side castle
+                rookStartPosition = [secondLoc[0], 0]
+                rookEndPosition = [secondLoc[0], 3]
+            else:                
+                #King side castle
+                rookStartPosition = [secondLoc[0], 7]
+                rookEndPosition = [secondLoc[0], 5]
+            self[rookEndPosition] = self[rookStartPosition]
+            self[rookStartPosition].changeLoc(rookEndPosition)
+            self[rookStartPosition] = Empty(rookStartPosition)
         elif self.first.__class__.__name__ == 'Pawn' and self.second.loc[0] == (self.first.homeRow + 6 * self.first.rowChange):
             promotePawn = True
         elif self.first.__class__.__name__ == 'Pawn' and self.second.__class__.__name__ == 'Empty' and (firstLoc[1] - secondLoc[1]) != 0:
@@ -281,18 +288,18 @@ class Game:
             return False
  
     def highlightMoves(self, board, selectedPiece):
+        selectedPiece.bg = 1
         possMoves = selectedPiece.possMoves(self)
         for piece in possMoves:
-            if  not piece.isEmpty():
-                if piece.colour != self.turn:
-                    piece.bg = 3
-            else:
+            if piece.isEmpty() and not piece.enPassantSquare == True:
                 piece.bg = 2
-        selectedPiece.bg = 1
+            else:
+                piece.bg = 3
         return
 
     def deHighlightMoves(self):
         for row in self.board:
             for piece in row:
                 piece.bg = 0
+                piece.enPassantSquare = False
         return
