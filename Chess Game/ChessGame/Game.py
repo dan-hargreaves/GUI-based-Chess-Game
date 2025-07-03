@@ -164,6 +164,15 @@ class Game:
         king = self.currKing()
         return king.checkCheck(self)
     
+    def kingCanMove(self):
+        king = self.currKing()
+        self.first = king
+        for test_move in king.possMoves():
+            self.second = test_move
+            if self.movesIntoCheck() == False:
+                return True
+        return False
+    
     def switchTurn(self):
         if self.turn =='White':
             self.turn = 'Black'
@@ -250,14 +259,18 @@ class Game:
                         if self.movesIntoCheck() == False: # Check whether the move puts the current player in check.
                             self.first = first
                             self.second = second
-                            return False # If any move does not put the player in check, then return for efficiency.
+                            return # If any move does not put the player in check, then return for efficiency.
         self.first = first
         self.second = second
         self.gameOver = True
-        self.winMethod = 'checkmate'
-        self.switchTurn()
-        self.winner = self.turn
-        return True
+        if self.inCheck() == True:
+            self.winMethod = 'checkmate'
+            self.switchTurn()
+            self.winner = self.turn
+        else:
+            self.winMethod = 'stalemate'
+            
+        return   
     
     def resign(self):
         self.switchTurn()
