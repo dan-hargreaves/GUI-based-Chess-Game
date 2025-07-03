@@ -219,18 +219,18 @@ class GUI():
     def endOfMove(self):
         self.clearText()
         self.game.deHighlightMoves()
-        self.game.switchTurn()
-        self.game.first = None
-        self.game.second = None
-        if self.game.inCheck():
-            if self.game.checkGameOver():
-                self.game.switchTurn()
-                self.printTxt(self.game.turn + ' wins!')
-                self.gameOverBox()
-            else:
-                self.printTxt(self.game.turn + ' is in check! \n' + self.game.turn + ' to move.')
+        self.game.checkGameOver()
+        if self.game.gameOver == True:
+            self.gameOverBox()
         else:
+            self.game.switchTurn()
+            self.game.first = None
+            self.game.second = None
             self.displayTurn()
+            if self.game.inCheck() == True:
+                self.printTxt(self.game.turn + ' is in check!')
+            else:
+                self.displayMoveNumber()
         return
     
     def gameOverBox(self):
@@ -249,18 +249,25 @@ class GUI():
         return
     
     def printTxt(self, text):
-        self.textbox.configure(state='normal')
+        self.textbox.configure(state = 'normal')
         self.textbox.delete('1.0', 'end')
         self.textbox.insert('end', text + '\n')
-        self.textbox.config(state='disabled')
+        self.textbox.config(state = 'disabled')
         return
     
     def displayTurn(self):
-        self.textbox_turn.configure(state='normal')
+        self.textbox_turn.configure(state = 'normal')
         self.textbox_turn.delete('1.0', 'end')
         self.textbox_turn.insert('end', self.game.turn + ' to move.')
-        self.textbox_turn.config(state='disabled')
+        self.textbox_turn.config(state = 'disabled')
         return
+    
+    def displayMoveNumber(self):
+        self.textbox_move.configure(state = 'normal')
+        self.textbox_move.delete('1.0', 'end')
+        self.textbox_move.insert('end', 'Move ' + str(self.game.moveNumber))
+        self.textbox_move.config(state = 'disabled')
+        return   
     
     def clearText(self):
         self.textbox.configure(state='normal')
@@ -294,8 +301,10 @@ class GUI():
         tk.Label(self.root, text = self.game.blackPlayerName).grid(row = 0, column = 0)
         tk.Label(self.root, text = self.game.whitePlayerName).grid(row = 9, column = 0)
         self.createButtons()
-        self.textbox_turn = tk.Text(self.root, height = 2, width = 30)
-        self.textbox_turn.grid(row = 0, column = 8, columnspan = 4)
+        self.textbox_move = tk.Text(self.root, height = 2, width = 15)
+        self.textbox_move.grid(row = 0, column = 8, columnspan = 2)
+        self.textbox_turn = tk.Text(self.root, height = 2, width = 15)
+        self.textbox_turn.grid(row = 0, column = 10, columnspan = 2)
         tk.Button(self.root, text = 'Main Menu', height = 2, width = 16, command = self.askSave).grid(row = 1, column = 8, columnspan = 2)
         tk.Button(self.root, text = 'Save Game', height = 2, width = 16, command = self.saveGame).grid(row = 2, column = 10, columnspan = 2)
         if not self.game.gameOver:
@@ -312,6 +321,7 @@ class GUI():
             )
         self.flipBoardToggle.grid(row = 4, column = 8, sticky = "w")
         self.displayTurn()
+        self.displayMoveNumber()
         self.root.mainloop()
         return
             

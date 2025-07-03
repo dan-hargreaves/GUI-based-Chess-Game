@@ -164,7 +164,74 @@ class MovePiecesTestCase(unittest.TestCase):
                     ['P','P','P','P','P','P','P','P'],
                     ['R','H','B','Q','K','B','H','R']]
         game = ChessGame.Game(pieces)
-        self.assertEqual(game.checkGameOver(), True)#
+        
+        # Act
+        game.checkGameOver()
+        
+        # Assert
+        self.assertEqual(game.gameOver, True)
+        self.assertEqual(game.winMethod, 'checkmate')
+
+        
+    # Happy path
+    def test_loadGame_WhenStalematePosition_CheckStalemateTrue(self):
+        # arrange 
+        pieces = [  ['' ,'' ,'' ,'' ,'k','' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['p','' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['P','' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'q','' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'K']]
+        game = ChessGame.Game(pieces)
+        game.turn = 'Black'
+                
+        # Act
+        game.checkGameOver()
+        
+        # Assert
+        self.assertEqual(game.gameOver, True)
+        self.assertEqual(game.winMethod, 'stalemate')
+
+        
+        # arrange 
+
+        game = ChessGame.Game(pieces)   
+        pieces = [  ['' ,'' ,'' ,'' ,'k','' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['p','' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['P','' ,'' ,'' ,'' ,'q','' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'q','' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'q','R','' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'K']]
+        game.turn = 'Black'
+                
+        # Act
+        game.checkGameOver()
+        
+        # Assert
+        self.assertEqual(game.gameOver, True)
+        self.assertEqual(game.winMethod, 'stalemate')
+
+        
+    # Sad path    
+    def test_loadGame_WhenStalematePosition_CheckStalemateFalse(self):
+        # arrange 
+        pieces = [  ['' ,'' ,'' ,'' ,'k','' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['P','' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'q','' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'K']]
+        game = ChessGame.Game(pieces)
+        game.turn = 'Black'
+        self.assertEqual(game.gameOver, False)    
+        self.assertEqual(game.winMethod, '')
+
         
     def test_WhenPromotePawnToQueen_CheckPromotionSuccessful(self):
         # arrange 
@@ -200,6 +267,24 @@ class MovePiecesTestCase(unittest.TestCase):
         self.assertEqual(self.game.winner, 'Black')
         self.assertEqual(self.game.winMethod, 'resignation')
 
+    def test_WhenChangeTurn_CheckMoveNumberCorrect(self):
+        # arrange 
+        self.game = ChessGame.Game()
+        
+        # assert
+        self.assertEqual(self.game.moveNumber, 1)
+        
+        #act 
+        self.game.switchTurn()
+        
+        # assert
+        self.assertEqual(self.game.moveNumber, 1)
+        
+        #act 
+        self.game.switchTurn()
+        
+        # assert
+        self.assertEqual(self.game.moveNumber, 2)
         
 class GUITestCase(unittest.TestCase):
     @classmethod
@@ -266,6 +351,16 @@ class GUITestCase(unittest.TestCase):
 
         # assert
         self.assertEqual(self.GUI.displayTurn.call_count, 1)
+        
+    def test_WhenNewGame_CheckMoveNumberDisplayed(self):
+        # arrange 
+        self.GUI.displayMoveNumber = MagicMock()
+        self.GUI.viewBoard()
+        
+        #act 
+
+        # assert
+        self.assertEqual(self.GUI.displayMoveNumber.call_count, 1)
 
     def test_WhenSwitchTurns_BoardOrientationFlips(self):
         # arrange 
@@ -280,7 +375,6 @@ class GUITestCase(unittest.TestCase):
         self.GUI.game.turn = 'Black'
         self.GUI.game.highlightMoves(self.GUI.game, self.GUI.game[6, 1])#Highlight black pawn
         self.GUI.updateBoard()
-        # self.GUI.viewBoard()
 
         # assert
         self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'Black')
@@ -294,4 +388,28 @@ class GUITestCase(unittest.TestCase):
         
         # assert
         self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'White')
+        
+    def test_WhenCheckPosition_CheckMessagePrinted(self):
+         # arrange 
+         pieces = [  ['r','h','b','' ,'k','' ,'' ,'r'],
+                     ['p','p','p','p','p','' ,'p','p'],
+                     ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                     ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'Q'],
+                     ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                     ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                     ['P','P','P','P','P','P','P','P'],
+                     ['R','H','B','Q','K','B','H','R']]
+         self.GUI = ChessGame.GUI()
+         self.GUI.game = ChessGame.Game(pieces)
+         self.GUI.printTxt = MagicMock()
+         self.GUI.textbox = MagicMock()
+         self.GUI.textbox_turn = MagicMock()
+         self.GUI.textbox_move = MagicMock()
+         self.GUI.game.turn = 'Black'
+         
+         # act 
+         self.GUI.endOfMove() 
+    
+         # assert
+         self.GUI.printTxt.assert_called_with('White is in check!')
 
