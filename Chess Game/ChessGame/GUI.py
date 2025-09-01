@@ -141,7 +141,7 @@ class GUI():
             for j in range(8):
                 piece = self.game[i, j]
                 self.buttons[row][j].config(
-                    text = piece.text,
+                    text = piece.display_text,
                     bg = self.backgroundColour(piece),
                     fg = piece.colour
                     )
@@ -223,7 +223,6 @@ class GUI():
         if self.game.gameOver == True:
             self.gameOverBox()
         else:
-            self.game.switchTurn()
             self.game.first = None
             self.game.second = None
             self.displayTurn()
@@ -284,7 +283,7 @@ class GUI():
                 piece = self.game[i, j]
                 b = tk.Button(
                         self.root, 
-                        text = piece.text,
+                        text = piece.display_text,
                         fg = piece.colour,
                         bg = self.backgroundColour(piece),
                         height = 2, 

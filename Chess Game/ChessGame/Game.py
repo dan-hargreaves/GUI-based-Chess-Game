@@ -24,16 +24,20 @@ class Game:
         self.turn = 'White' # The curren turn
         self.saved = False # Records whether the player has chosen to save the game
         self.moveNumber = 1
-        
+        self.halfMoveClock = 0
+        self.whiteKingsideCastle = True
+        self.whiteQueensideCastle = True
+        self.blackKingsideCastle = True
+        self.blackQueensideCastle = True
         if pieces == None:
-            pieces=[['r','h','b','q','k','b','h','r'],
-                    ['p','p','p','p','p','p','p','p'],
-                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
-                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
-                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
-                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+            pieces=[['R','H','B','Q','K','B','H','R'],
                     ['P','P','P','P','P','P','P','P'],
-                    ['R','H','B','Q','K','B','H','R']]
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['' ,'' ,'' ,'' ,'' ,'' ,'' ,'' ],
+                    ['p','p','p','p','p','p','p','p'],
+                    ['r','h','b','q','k','b','h','r']]
         
                     
         for i in range(8):
@@ -44,31 +48,31 @@ class Game:
                 if _piece == '':
                     piece = Empty([i,j])   
                 elif _piece == 'P':
-                    piece = Pawn([i,j], 'Black')
-                elif _piece == 'p':
                     piece = Pawn([i,j], 'White')
+                elif _piece == 'p':
+                    piece = Pawn([i,j], 'Black')
                 elif _piece == 'B':
-                    piece = Bishop([i,j], 'Black')
-                elif _piece == 'b':
                     piece = Bishop([i,j], 'White')
+                elif _piece == 'b':
+                    piece = Bishop([i,j], 'Black')
                 elif _piece == 'H':
-                    piece = Knight([i,j], 'Black')
+                    piece = Knight([i,j], 'White')
                 elif _piece == 'h':
-                    piece =Knight([i,j], 'White')
+                    piece =Knight([i,j], 'Black')
                 elif _piece == 'R':
-                    piece =Rook([i,j], 'Black')
-                elif _piece == 'r':
                     piece =Rook([i,j], 'White')
+                elif _piece == 'r':
+                    piece =Rook([i,j], 'Black')
                 elif _piece == 'K':
-                    piece=King([i,j], 'Black')
-                    self.blackKing = piece
-                elif _piece == 'k':
                     piece = King([i,j], 'White')
-                    self.whiteKing= piece
+                    self.whiteKing = piece
+                elif _piece == 'k':
+                    piece = King([i,j], 'Black')
+                    self.blackKing = piece
                 elif _piece == 'Q':
-                    piece =Queen([i,j], 'Black')
+                    piece = Queen([i,j], 'White')
                 else:
-                    piece =Queen([i,j], 'White')
+                    piece = Queen([i,j], 'Black')
                 row.append(piece)
             self.board.append(row)
         return
@@ -187,45 +191,63 @@ class Game:
                 if piece.__class__.__name__ == 'Pawn':
                     if piece.colour != self.turn:
                         piece.doubleJumpedLastMove = False
+                        
+    def updateHalfMoveClock(self):
+        if not self.second.isEmpty() or self.first.__class__.__name__ == 'Pawn':
+            self.halfMoveClock = 0
+        else:
+            self.halfMoveClock += 1
+
 
     def makeMove(self):
-        '''
-        
-
-        Returns
-        -------
-        promotePawn : TYPE
-            DESCRIPTION.
-
-        '''
-        promotePawn = False
+        self.updateHalfMoveClock()  
         firstLoc = self.first.loc
         self.savedLoc = firstLoc # Need this saved for GUI.promotePawn() method
         secondLoc = self.second.loc
         self[secondLoc] = self[firstLoc] 
         self.first.changeLoc(secondLoc)
         self[firstLoc] = Empty(firstLoc)#adds an empyty square where the first piece was
-        if self.first.__class__.__name__ == 'King' and abs(firstLoc[1] - secondLoc[1]) == 2:
-            # If king is making a castling move, then swap the rook
-            if secondLoc[1] == 2: 
-                #Queen side castle
-                rookStartPosition = [secondLoc[0], 0]
-                rookEndPosition = [secondLoc[0], 3]
-            else:                
-                #King side castle
-                rookStartPosition = [secondLoc[0], 7]
-                rookEndPosition = [secondLoc[0], 5]
-            self[rookEndPosition] = self[rookStartPosition]
-            self[rookStartPosition].changeLoc(rookEndPosition)
-            self[rookStartPosition] = Empty(rookStartPosition)
+        promotePawn = False
+        if self.first.__class__.__name__ == 'King':
+            if self.turn == 'White':
+                self.whiteKingsideCastle = False
+                self.whiteQueensideCastle = False
+            else:
+                self.blackKingsideCastle = False
+                self.blackQueensideCastle = False
+            if abs(firstLoc[1] - secondLoc[1]) == 2:
+                # If king is making a castling move, then swap the rook
+                if secondLoc[1] == 2: 
+                    #Queen side castle
+                    rookStartPosition = [secondLoc[0], 0]
+                    rookEndPosition = [secondLoc[0], 3]
+                else:                
+                    #King side castle
+                    rookStartPosition = [secondLoc[0], 7]
+                    rookEndPosition = [secondLoc[0], 5]
+                self[rookEndPosition] = self[rookStartPosition]
+                self[rookStartPosition].changeLoc(rookEndPosition)
+                self[rookStartPosition] = Empty(rookStartPosition)
         elif self.first.__class__.__name__ == 'Pawn' and self.second.loc[0] == (self.first.homeRow + 6 * self.first.rowChange):
             promotePawn = True
         elif self.first.__class__.__name__ == 'Pawn' and self.second.__class__.__name__ == 'Empty' and (firstLoc[1] - secondLoc[1]) != 0:
             #Check if en passant has occurred
             enPassantPawnLocation = [firstLoc[0], secondLoc[1]]
             self[enPassantPawnLocation] = Empty(enPassantPawnLocation)
+        elif self.first.__class__.__name__ == 'Rook':
+            if self.turn == 'White':
+                if firstLoc == [0, 0]:
+                    self.whiteQueensideCastle = False
+                elif firstLoc == [0, 7]:
+                    self.whiteKingsideCastle = False
+            else:
+                if firstLoc == [7, 0]:
+                    self.whiteQueensideCastle = False
+                elif firstLoc == [7, 7]:
+                    self.whiteKingsideCastle = False
            
         self.updateDoubleJumpBools()
+        self.switchTurn()
         return promotePawn
     
     def promotePawn(self, piece_name):
@@ -316,3 +338,65 @@ class Game:
                 piece.bg = 0
                 piece.enPassantSquare = False
         return
+    
+    def FEN_string(self):
+        #Generate a FEN string based on current board setup
+        fen_string_components = []
+        
+        # Pieces layout
+        blank_count = 0
+        rows = []
+        for row in reversed(self.board):
+            row_string = ""
+            for piece in row:
+                if piece.isEmpty():
+                    blank_count += 1
+                else:
+                    if blank_count != 0:
+                        row_string += str(blank_count)
+                        blank_count = 0
+                    row_string += piece.text
+                    
+            if blank_count != 0:
+                row_string += str(blank_count)
+                
+            blank_count = 0
+            rows.append(row_string)
+        pieces_layout = '/'.join(rows)
+        fen_string_components.append(pieces_layout)
+        
+        #Turn
+        fen_string_components.append(self.turn[0].lower())
+        
+        # Castling string
+        castling_string = ""
+        if self.whiteKingsideCastle == True:
+            castling_string += 'K'
+        if self.whiteQueensideCastle == True:
+            castling_string += 'Q'
+        if self.blackKingsideCastle == True:
+            castling_string += 'k'
+        if self.blackQueensideCastle == True:
+            castling_string += 'q'
+        if castling_string == '':
+            castling_string = '-'
+        
+        fen_string_components.append(castling_string)
+
+        # Pawn double jump square
+        en_passant_string = "-"
+        for row in self.board:
+            for piece in row:
+                if piece.__class__.__name__ == 'Pawn' and piece.doubleJumpedLastMove == True:
+                    algebraicLoc = piece.algebraicLoc()
+                    en_passant_string = algebraicLoc[0] + str(int(algebraicLoc[1])-piece.rowChange)
+        
+        fen_string_components.append(en_passant_string)
+        
+        # Half move clock and turn
+        fen_string_components.append(str(self.halfMoveClock))
+        fen_string_components.append(str(self.moveNumber))
+        
+        fen_string = ' '.join(fen_string_components)
+        
+        return fen_string
