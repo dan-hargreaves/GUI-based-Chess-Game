@@ -4,17 +4,17 @@ class Piece:
     '''
     A parent class for any piece type
     '''
-    def __init__(self, loc, colour, text): 
+    def __init__(self, loc, colour, display_text): 
         self.loc = loc
         self.colour = colour
         self.bg = 0
-        self.text = text
+        self.display_text = display_text
         self.moved = False
         self.enPassantSquare = False
         
     def __eq__(self, other):
         try:
-            if self.loc==other.loc:
+            if self.loc == other.loc:
                 return True
             else:
                 return False
@@ -32,6 +32,9 @@ class Piece:
         self.loc = newLoc[:]
         self.moved = True
         return
+    
+    def algebraicLoc(self):
+        return chr(97 + self.loc[1]) + str(self.loc[0] + 1)
     
     def scanAlong(self, board, rowScan, columnScan):
         #This function will scan along the board in a given direction from a start point and return all the pieces along that direction which could be moved to/ taken
@@ -65,15 +68,18 @@ class Empty(Piece):
     '''
     def __init__(self,loc):
         Piece.__init__(self, loc, 'red', "")
+        self.text = ''
         
 class Pawn(Piece):
     def __init__(self, loc, colour):
         Piece.__init__(self, loc, colour, '♙')
         self.doubleJumpedLastMove = False
         if self.colour == 'Black':
+            self.text = 'p'
             self.rowChange = -1 
             self.homeRow = 6
         else:
+            self.text = 'P'
             self.rowChange = 1
             self.homeRow = 1
             
@@ -138,7 +144,10 @@ class Pawn(Piece):
 class Bishop(Piece):
     def __init__(self, loc, colour):
         Piece.__init__(self, loc, colour, '♗')
-        
+        if self.colour == 'Black':
+            self.text = 'b'
+        else:
+            self.text = 'B'
     def possMoves(self, board):#compiles a list of squares to which a bishop, placed at that loc, can move to
         possMoves = []       
         possMoves += self.scanAlong(board, -1, -1)
@@ -150,7 +159,11 @@ class Bishop(Piece):
 class Knight(Piece):
     def __init__(self,  loc, colour):
         Piece.__init__(self, loc, colour, '♘')
-
+        if self.colour == 'Black':
+            self.text = 'n'
+        else:
+            self.text = 'N'
+            
     def possMoves(self, board):
         possMoves = []
         startRow = self.loc[0]
@@ -176,7 +189,11 @@ class Knight(Piece):
 class Rook(Piece):
     def __init__(self, loc, colour):
         Piece.__init__(self, loc, colour, '♖')
-        
+        if self.colour == 'Black':
+            self.text = 'r'
+        else:
+            self.text = 'R'
+            
     def possMoves(self, board):#compiles a list of squares to which a bishop, placed at that loc, can move to
         possMoves = []       
         possMoves += self.scanAlong(board, 0, -1)
@@ -189,8 +206,10 @@ class King(Piece):
     def __init__(self, loc, colour):
         Piece.__init__(self, loc, colour, '♔')
         if colour == 'White':
+            self.text = 'K'
             self.kingDirection = -1
         else:
+            self.text = 'k'
             self.kingDirection = 1
 
     def possMoves(self, board):
@@ -249,7 +268,11 @@ class King(Piece):
 class Queen(Piece):
     def __init__(self, loc, colour):
         Piece.__init__(self, loc, colour, '♕')
-        
+        if self.colour == 'Black':
+            self.text = 'q'
+        else:
+            self.text = 'Q'
+            
     def possMoves(self, board):#compiles a list of squares to which a bishop, placed at that loc, can move to
         possMoves = []       
         possMovesBishop = getattr(Bishop, 'possMoves')

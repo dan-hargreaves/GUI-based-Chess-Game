@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+"""
+Created on Mon Aug  4 15:35:57 2025
+
+@author: DHargreaves
+"""
 
 import ChessGame
-# sys.path.insert(1,'C:/Users/dhargreaves/OneDrive - Foresight Group LLP/Documents/Misc/Python files/Chess Game/Chess Game/Classes/')
 
 def start():
     GUI = ChessGame.GUI()
