@@ -91,6 +91,8 @@ class GUITestCase(unittest.TestCase):
         
         # assert
         self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'White')
+        self.assertEqual(self.GUI.rank_labels[0].cget('text'), '8')
+
         
         #act 
         self.GUI.flipBoardEachTurn.set(True)
@@ -101,6 +103,7 @@ class GUITestCase(unittest.TestCase):
         # assert
         self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'Black')
         self.assertEqual(self.GUI.buttons[2][1].cget('bg'), 'gold') # Square in front of highlighted pawn
+        self.assertEqual(self.GUI.rank_labels[0].cget('text'), '1')
 
         
         #act 
@@ -110,6 +113,8 @@ class GUITestCase(unittest.TestCase):
         
         # assert
         self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'White')
+        self.assertEqual(self.GUI.rank_labels[0].cget('text'), '8')
+
     
     def test_WhenCheckPosition_CheckMessagePrinted(self):
         # arrange 

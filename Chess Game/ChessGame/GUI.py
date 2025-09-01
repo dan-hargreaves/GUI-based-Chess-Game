@@ -83,7 +83,7 @@ class GUI():
         
         with open(fileName, "rb") as openfile:
             game = pickle.load(openfile)
-            
+        
         if game.gameOver:
             self.viewBoard_inactive(game)
         else:
@@ -134,10 +134,18 @@ class GUI():
         #This funciton will display the board to the user or update it when called.
         if self.flipBoardEachTurn.get() == True and self.game.turn == 'Black':
             calcRowNumber = lambda i : 7 - i
+            calcLabelNumber = lambda i : str(i + 1)
+            self.player_textbox_top.config(text=self.game.whitePlayerName)
+            self.player_textbox_bottom.config(text=self.game.blackPlayerName)
         else:
             calcRowNumber = lambda i : i
+            calcLabelNumber = lambda i : str(8 - i)
+            self.player_textbox_top.config(text=self.game.blackPlayerName)
+            self.player_textbox_bottom.config(text=self.game.whitePlayerName)
+            
         for i in range(8):
             row = calcRowNumber(i)
+            self.rank_labels[i].config(text=calcLabelNumber(i))
             for j in range(8):
                 piece = self.game[i, j]
                 self.buttons[row][j].config(
@@ -277,6 +285,12 @@ class GUI():
         self.root.destroy()
         
     def createButtons(self):
+        # Player Names
+        self.player_textbox_top = tk.Label(self.root, text=self.game.blackPlayerName)
+        self.player_textbox_top.grid(row = 0, column = 1)
+        self.player_textbox_bottom = tk.Label(self.root, text=self.game.whitePlayerName)
+        self.player_textbox_bottom.grid(row = 10, column = 1)
+        
         for i in range(8):
             row = []
             for j in range(8):
@@ -291,48 +305,59 @@ class GUI():
                         font = 'Helvetica 16 bold',
                         command = lambda loc = [i, j]: self.buttonPressed(loc)
                 )
-                b.grid(row = 8 - i, column = j)# Flip board to show white at bottom.
+                b.grid(row = 8-i, column = j+1)# Flip board to show white at bottom.
                 row.append(b)
-            self.buttons.append(row)     
+            self.buttons.append(row) 
+            
+            files = "abcdefgh"
+            for col in range(8):
+                tk.Label(self.root, text=files[col], font=("Arial", 8)).grid(row = 9, column=col+1)
+             
+            ranks = "12345678"
+            self.rank_labels = []
+            for row in range(8):
+                label = tk.Label(self.root, text=ranks[7-row], font=("Arial", 8))
+                label.grid(row=row+1, column=0)
+                self.rank_labels.append(label)
+            
+            # Right hand side controls
+            self.textbox_move = tk.Text(self.root, height=2, width=15)
+            self.textbox_move.grid(row=2, column=9, columnspan=2)
+            self.textbox_turn = tk.Text(self.root, height=2, width=15)
+            self.textbox_turn.grid(row=2, column=11, columnspan=2)
+            tk.Button(self.root, text='Main Menu', height=2, width=16, command=self.askSave).grid(row=3, column=9, columnspan=2)
+            tk.Button(self.root, text='Save Game', height=2, width=16, command=self.saveGame).grid(row=4, column=11, columnspan=2)
+            if not self.game.gameOver:
+                tk.Button(self.root, text='Resign', height=2, width=16, command=self.resignButton).grid(row=4, column=9, columnspan=2)
+            self.textbox = tk.Text(self.root, height=4, width=30)
+            self.textbox.grid(row=5, column=9, columnspan=4, rowspan=1)
+            self.flipBoardToggle = tk.Checkbutton(
+                self.root,
+                text = "Flip Board",
+                variable = self.flipBoardEachTurn,
+                onvalue = True,
+                offvalue = False,
+                command = self.updateBoard  # Optional: callback when changed
+                )
+            self.flipBoardToggle.grid(row=6, column=9, sticky="w")   
             
     def viewBoard(self):
-        self.clear()
-        tk.Label(self.root, text = self.game.blackPlayerName).grid(row = 0, column = 0)
-        tk.Label(self.root, text = self.game.whitePlayerName).grid(row = 9, column = 0)
-        self.createButtons()
-        self.textbox_move = tk.Text(self.root, height = 2, width = 15)
-        self.textbox_move.grid(row = 0, column = 8, columnspan = 2)
-        self.textbox_turn = tk.Text(self.root, height = 2, width = 15)
-        self.textbox_turn.grid(row = 0, column = 10, columnspan = 2)
-        tk.Button(self.root, text = 'Main Menu', height = 2, width = 16, command = self.askSave).grid(row = 1, column = 8, columnspan = 2)
-        tk.Button(self.root, text = 'Save Game', height = 2, width = 16, command = self.saveGame).grid(row = 2, column = 10, columnspan = 2)
-        if not self.game.gameOver:
-            tk.Button(self.root, text = 'Resign', height = 2, width = 16, command = self.resignButton).grid(row = 2, column = 8, columnspan = 2)
-        self.textbox = tk.Text(self.root, height = 4, width = 30)
-        self.textbox.grid(row = 3, column = 8, columnspan = 4, rowspan = 1)
-        self.flipBoardToggle = tk.Checkbutton(
-            self.root,
-            text = "Flip Board",
-            variable = self.flipBoardEachTurn,
-            onvalue = True,
-            offvalue = False,
-            command = self.updateBoard  # Optional: callback when changed
-            )
-        self.flipBoardToggle.grid(row = 4, column = 8, sticky = "w")
+        self.clear()      
+        self.createButtons()        
         self.displayTurn()
         self.displayMoveNumber()
         self.root.mainloop()
-        return
             
     def viewBoard_inactive(self, game):
         self.clear()
         tk.Label(text = game.winner + ' won by ' + game.winMethod).grid(row = 0, column = 0, columnspan = 8)
+            
         for i in range(8):
             for j in range(8):
                 piece = game[i, j]
                 b = tk.Label(
                         self.root, 
-                        text = piece.text,
+                        text = piece.display_text,
                         fg = piece.colour,
                         bg = self.backgroundColour(piece),
                         height = 2, 
@@ -341,9 +366,18 @@ class GUI():
                         relief = 'solid',
                         borderwidth = 1
                 )
-                b.grid(row = 8-i, column = j)# Flip board to show white at bottom.
-        tk.Button(self.root, text = 'Main Menu', height = 2, width = 16, command = self.mainMenu).grid(row = 9, column = 0, columnspan = 3)
-        tk.Button(self.root, text = 'Saved Games', height = 2, width = 16, command = self.savedGamesMenu).grid(row = 9, column = 3, columnspan = 3)
+                b.grid(row = 8-i, column = j+1)# Flip board to show white at bottom.
+                
+        files = "abcdefgh"
+        for col in range(8):
+            tk.Label(self.root, text=files[col], font=("Arial", 8)).grid(row = 9, column=col+1)
+         
+        ranks = "12345678"
+        for row in range(8):
+            tk.Label(self.root, text=ranks[7-row], font=("Arial", 8)).grid(row=row+1, column=0)
+            
+        tk.Button(self.root, text = 'Main Menu', height = 2, width = 16, command = self.mainMenu).grid(row = 10, column = 1, columnspan = 3)
+        tk.Button(self.root, text = 'Saved Games', height = 2, width = 16, command = self.savedGamesMenu).grid(row = 10, column = 4, columnspan = 3)
         self.root.mainloop()
         return  
     
