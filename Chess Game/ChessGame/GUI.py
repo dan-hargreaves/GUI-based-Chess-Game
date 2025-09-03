@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
 import tkinter as tk
-from ChessGame import Game
+from ChessGame import Game, Player
 import pickle
 import datetime
 import os
 import random
-
-class Player():
-    def __init__(self, player_name, player_type):
-        self.name = player_name
-        self.type = player_type
         
 class GUI():
     def __init__(self, root = None):
@@ -140,13 +135,13 @@ class GUI():
         if self.flipBoardEachTurn.get() == True and self.game.turn == 'Black':
             calcRowNumber = lambda i : 7 - i
             calcLabelNumber = lambda i : str(i + 1)
-            self.player_textbox_top.config(text=self.game.whitePlayerName)
-            self.player_textbox_bottom.config(text=self.game.blackPlayerName)
+            self.player_textbox_top.config(text=self.game.whitePlayer.name)
+            self.player_textbox_bottom.config(text=self.game.blackPlayer.name)
         else:
             calcRowNumber = lambda i : i
             calcLabelNumber = lambda i : str(8 - i)
-            self.player_textbox_top.config(text=self.game.blackPlayerName)
-            self.player_textbox_bottom.config(text=self.game.whitePlayerName)
+            self.player_textbox_top.config(text=self.game.blackPlayer.name)
+            self.player_textbox_bottom.config(text=self.game.whitePlayer.name)
             
         for i in range(8):
             row = calcRowNumber(i)
@@ -291,9 +286,9 @@ class GUI():
         
     def createButtons(self):
         # Player Names
-        self.player_textbox_top = tk.Label(self.root, text=self.game.blackPlayerName)
+        self.player_textbox_top = tk.Label(self.root, text=self.game.blackPlayer.name)
         self.player_textbox_top.grid(row = 0, column = 1)
-        self.player_textbox_bottom = tk.Label(self.root, text=self.game.whitePlayerName)
+        self.player_textbox_bottom = tk.Label(self.root, text=self.game.whitePlayer.name)
         self.player_textbox_bottom.grid(row = 10, column = 1)
         
         for i in range(8):
@@ -467,6 +462,8 @@ class GUI():
         """Handle player setup with validation and game creation"""
         name1 = self.white_name_entry.get().strip()
         name2 = self.black_name_entry.get().strip()
+        player_type1 = self.white_player_type.get()
+        player_type2 = self.black_player_type.get()
         
         # Validation with visual feedback
         valid = True
@@ -485,12 +482,16 @@ class GUI():
         if name1 == name2:
             self.set_player_setup_error("Player names cannot be the same")
             valid = False
+        
+        if player_type1 == player_type2 == 'computer':
+            self.set_player_setup_error("Both players cannot be computer")
+            valid = False
             
         if not valid:
             return
     
-        player1 = Player(name1, self.white_player_type.get())
-        player2 = Player(name2, self.black_player_type.get())
+        player1 = Player.Player(name1, self.white_player_type.get())
+        player2 = Player.Player(name2, self.black_player_type.get())
         
         # Random color assignment
         if assignColoursRandomly:
@@ -500,8 +501,8 @@ class GUI():
         
         # Create and configure game
         game = Game.Game()
-        game.whitePlayerName = player1.name
-        game.blackPlayerName = player2.name
+        game.whitePlayer = player1
+        game.blackPlayer = player2
         
         game.createGameCode()
         top.destroy()
