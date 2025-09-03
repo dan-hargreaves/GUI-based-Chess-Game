@@ -17,6 +17,8 @@ class Game:
         self.winner = None
         self.whitePlayerName = '' # Name of white player
         self.blackPlayerName = '' # Name of black player
+        self.whitePlayerType = ''
+        self.blackPlayerType = ''
         self.winMethod ='' # String which holds the way in which player won (e.g. 'checkmate')     
         self.board = [] # A matrix of all the pieces in the board
         self.first = None # The first piece that the player has clicked (on button press)

@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 import tkinter as tk
-from ChessGame.Game import *
+from ChessGame import Game
 import pickle
 import datetime
 import os
 import random
 
+class Player():
+    def __init__(self, player_name, player_type):
+        self.name = player_name
+        self.type = player_type
+        
 class GUI():
     def __init__(self, root = None):
         self.savedGames = []
@@ -381,54 +386,223 @@ class GUI():
         self.root.mainloop()
         return  
     
-    def getPlayersButton(self, top, tb1, tb2, assignColoursRandomly=None):
-        name1 = tb1.get("1.0", "end-1c")
-        name2 = tb2.get("1.0", "end-1c")
+    # def getPlayersButton(self, top, tb1, tb2, assignColoursRandomly=None):
+    #     name1 = tb1.get("1.0", "end-1c")
+    #     name2 = tb2.get("1.0", "end-1c")
+    #     if name1 == '':
+    #         tb1.config(bg = 'pink')
+    #     else:
+    #         tb1.config(bg = 'white')
+            
+    #     if name2 == '':
+    #         tb2.config(bg = 'pink')
+    #     else:
+    #         tb2.config(bg = 'white')
+            
+    #     if name1 != '' and name2 != '':
+    #         if assignColoursRandomly == True:
+    #             names = [name1, name2]
+    #             random.shuffle(names)
+    #             name1, name2 = names[0], names[1]
+    #         game = Game()
+    #         game.whitePlayerName = name1
+    #         game.blackPlayerName = name2
+    #         game.createGameCode()
+    #         top.destroy()
+    #         self.playGame(game)
+            
+    # def _handle_start_game(self, dialog, random_colors):
+    #     """Helper method to handle game start with validation"""
+    #     # Get player names and validate
+    #     white_name = self.white_name_entry.get().strip()
+    #     black_name = self.black_name_entry.get().strip()
+        
+    #     # Basic validation
+    #     if not white_name:
+    #         white_name = "Player 1"
+    #     if not black_name:
+    #         black_name = "Player 2"
+            
+    #     # Ensure names are different if both are human players
+    #     if (white_name == black_name and 
+    #         self.white_player_type.get() == "human" and 
+    #         self.black_player_type.get() == "human"):
+    #         black_name += " (Black)"
+    #         white_name += " (White)"
+        
+    #     # Update entry fields with validated names
+    #     self.white_name_entry.delete(0, tk.END)
+    #     self.white_name_entry.insert(0, white_name)
+    #     self.black_name_entry.delete(0, tk.END)
+    #     self.black_name_entry.insert(0, black_name)
+        
+    #     # Call the original method with all parameters
+    #     self.getPlayersButton(dialog, self.white_name_entry, self.black_name_entry, 
+    #                          random_colors, self.white_player_type, self.black_player_type)        
+    
+    # def getPlayersMenu(self):
+    #     top = tk.Toplevel(self.root)
+    #     tk.Label(top, text = 'Enter the player names').grid(row = 0, column = 0, columnspan = 2)
+    #     tk.Label(top, text = 'White:').grid(row = 1, column = 0)
+    #     tb1 = tk.Text(top, height = 1, width = 16)
+    #     tb1.grid(row = 1, column = 1)
+    #     tb1.insert('1.0', "Player 1")  # Set default text  
+    #     tk.Label(top, text = 'Black:').grid(row = 2, column = 0)
+    #     tb2 = tk.Text(top, height = 1, width = 16)
+    #     tb2.grid(row = 2, column = 1)
+    #     tb2.insert('1.0', "Player 2")  # Set default text  
+    #     tk.Button(top,
+    #               text = 'Start',
+    #               command = lambda:
+    #                   self.getPlayersButton(top, tb1, tb2)
+    #         ).grid(row = 3, column = 0)
+    #     tk.Button(top,
+    #               text = 'Assign Colours (psuedo) Randomly',
+    #               command = lambda:
+    #                   self.getPlayersButton(top, tb1, tb2, True)
+    #         ).grid(row = 3, column = 1)
+    #     top.mainloop()
+            
+    def getPlayersButton(self, top, assignColoursRandomly=None):
+        """Handle player setup with validation and game creation"""
+        name1 = self.white_name_entry.get().strip()
+        name2 = self.black_name_entry.get().strip()
+        
+        # Validation with visual feedback
+        valid = True
         if name1 == '':
-            tb1.config(bg = 'pink')
+            self.white_name_entry.config(bg='pink')
+            valid = False
         else:
-            tb1.config(bg = 'white')
+            self.white_name_entry.config(bg='white')
             
         if name2 == '':
-            tb2.config(bg = 'pink')
+            self.black_name_entry.config(bg='pink')
+            valid = False
         else:
-            tb2.config(bg = 'white')
-            
-        if name1 != '' and name2 != '':
-            if assignColoursRandomly == True:
-                names = [name1, name2]
-                random.shuffle(names)
-                name1, name2 = names[0], names[1]
-            game = Game()
-            game.whitePlayerName = name1
-            game.blackPlayerName = name2
-            game.createGameCode()
-            top.destroy()
-            self.playGame(game)
+            self.black_name_entry.config(bg='white')
         
+        if name1 == name2:
+            self.set_player_setup_error("Player names cannot be the same")
+            valid = False
+            
+        if not valid:
+            return
+    
+        player1 = Player(name1, self.white_player_type.get())
+        player2 = Player(name2, self.black_player_type.get())
+        
+        # Random color assignment
+        if assignColoursRandomly:
+            players = [player1, player2]
+            random.shuffle(players)
+            player1, player2 = players[0], players[1]
+        
+        # Create and configure game
+        game = Game.Game()
+        game.whitePlayerName = player1.name
+        game.blackPlayerName = player2.name
+        
+        game.createGameCode()
+        top.destroy()
+        self.playGame(game)
+    
     def getPlayersMenu(self):
+        """Create a dialog for setting up players with names and types (Human/Computer)"""
         top = tk.Toplevel(self.root)
-        tk.Label(top, text = 'Enter the player names').grid(row = 0, column = 0, columnspan = 2)
-        tk.Label(top, text = 'White:').grid(row = 1, column = 0)
-        tb1 = tk.Text(top, height = 1, width = 16)
-        tb1.grid(row = 1, column = 1)
-        tb1.insert('1.0', "Player 1")  # Set default text  
-        tk.Label(top, text = 'Black:').grid(row = 2, column = 0)
-        tb2 = tk.Text(top, height = 1, width = 16)
-        tb2.grid(row = 2, column = 1)
-        tb2.insert('1.0', "Player 2")  # Set default text  
-        tk.Button(top,
-                  text = 'Start',
-                  command = lambda:
-                      self.getPlayersButton(top, tb1, tb2)
-            ).grid(row = 3, column = 0)
-        tk.Button(top,
-                  text = 'Assign Colours (psuedo) Randomly',
-                  command = lambda:
-                      self.getPlayersButton(top, tb1, tb2, True)
-            ).grid(row = 3, column = 1)
-        top.mainloop()
-             
+        top.title("Player Setup")
+        top.resizable(False, False)
+        top.grab_set()          
+        top.geometry("400x200")
+        top.transient(self.root)
+        
+        # Main title
+        title_label = tk.Label(top, text='Enter Player Details', font=('Arial', 12, 'bold'))
+        title_label.grid(row=0, column=0, columnspan=4, pady=(10, 20))
+        
+        # White player section
+        tk.Label(top, text='White:', font=('Arial', 10)).grid(row=1, column=0, sticky='e', padx=(10, 5))
+        
+        self.white_name_entry = tk.Entry(top, width=16, font=('Arial', 10))
+        self.white_name_entry.grid(row=1, column=1, padx=5)
+        self.white_name_entry.insert(0, "Player 1")
+        
+        white_frame = tk.Frame(top)
+        white_frame.grid(row=1, column=2, columnspan=2, sticky='w', padx=(10, 0))
+        
+        self.white_player_type = tk.StringVar(value="human")
+        tk.Radiobutton(white_frame, text="Human", variable=self.white_player_type, 
+                       value="human", font=('Arial', 9)).pack(side='left')
+        tk.Radiobutton(white_frame, text="Computer", variable=self.white_player_type, 
+                       value="computer", font=('Arial', 9)).pack(side='left', padx=(10, 0))
+        
+        # Black player section
+        tk.Label(top, text='Black:', font=('Arial', 10)).grid(row=2, column=0, sticky='e', padx=(10, 5))
+        
+        self.black_name_entry = tk.Entry(top, width=16, font=('Arial', 10))
+        self.black_name_entry.grid(row=2, column=1, padx=5)
+        self.black_name_entry.insert(0, "Player 2")
+        
+        black_frame = tk.Frame(top)
+        black_frame.grid(row=2, column=2, columnspan=2, sticky='w', padx=(10, 0))
+        
+        self.black_player_type = tk.StringVar(value="human")
+        tk.Radiobutton(black_frame, text="Human", variable=self.black_player_type, 
+                       value="human", font=('Arial', 9)).pack(side='left')
+        tk.Radiobutton(black_frame, text="Computer", variable=self.black_player_type, 
+                       value="computer", font=('Arial', 9)).pack(side='left', padx=(10, 0))
+        
+        button_frame = tk.Frame(top)
+        button_frame.grid(row=3, column=0, columnspan=4, pady=(20, 10))
+        
+        # Buttons 
+        start_btn = tk.Button(button_frame, text='Start Game', 
+                             command=lambda: self.getPlayersButton(top, False),
+                             bg='#4CAF50', fg='white', font=('Arial', 10, 'bold'),
+                             padx=20, pady=5)
+        start_btn.pack(side='left', padx=5)
+        
+        random_btn = tk.Button(button_frame, text='Random Colors', 
+                              command=lambda: self.getPlayersButton(top, True),
+                              bg='#2196F3', fg='white', font=('Arial', 10),
+                              padx=20, pady=5)
+        random_btn.pack(side='left', padx=5)
+        
+        cancel_btn = tk.Button(button_frame, text='Cancel', 
+                              command=top.destroy,
+                              bg='#f44336', fg='white', font=('Arial', 10),
+                              padx=20, pady=5)
+        cancel_btn.pack(side='left', padx=5)
+        
+        self.player_setup_error_box = tk.Label(top, text="", 
+                                               font=('Arial', 9), 
+                                               fg='red',
+                                               bg='#ffeeee',
+                                               relief='sunken',
+                                               borderwidth=1,
+                                               wraplength=380,
+                                               justify='left',
+                                               anchor='w',
+                                               height=2)
+        self.player_setup_error_box.grid(row=4, column=0, columnspan=4, sticky='ew', padx=10, pady=(0, 10))       
+        self.player_setup_error_box.grid_remove()
+        
+        self.white_name_entry.focus()
+        self.white_name_entry.select_range(0, tk.END)
+        
+        # Keyboard shortcuts
+        top.bind('<Return>', lambda e: self.getPlayersButton(top, False))
+        top.bind('<Escape>', lambda e: top.destroy())
+        
+    def set_player_setup_error(self, error_text=""):
+        """Set the error message in the player setup dialog"""
+        self.player_setup_error_box.config(text=error_text)
+        # Show/hide the error box based on whether there's text
+        if error_text:
+            self.player_setup_error_box.grid()
+        else:
+            self.player_setup_error_box.grid_remove()
+            
     def mainMenu(self):
         self.clear()
         tk.Label(self.root, text = "Welcome to Dan Hargreaves's chess game!").grid(row = 0, column = 0, columnspan = 2)
