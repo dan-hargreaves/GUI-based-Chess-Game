@@ -34,7 +34,7 @@ class GUITestCase(unittest.TestCase):
 
         #act 
         self.GUI.game.highlightMoves(self.GUI.game, self.GUI.game[0, 0]) #Select rook
-        self.GUI.createButtons()
+        self.GUI.UI_chessBoard()
 
         # assert
         self.assertEqual(self.GUI.buttons[0][0].cget('bg'), "light green")
@@ -55,7 +55,7 @@ class GUITestCase(unittest.TestCase):
 
     def test_WhenSelectTwoWhitePieces_CheckSecondPieceHighlighted(self):
         # arrange 
-        self.GUI.createButtons()
+        self.GUI.UI_chessBoard()
         self.GUI.game.highlightMoves = MagicMock()
 
         #act 
@@ -87,25 +87,25 @@ class GUITestCase(unittest.TestCase):
 
     def test_WhenSwitchTurns_BoardOrientationFlips(self):
         # arrange 
-        self.GUI.createButtons()
+        self.GUI.UI_chessBoard()
         
         # assert
         self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'White')
         self.assertEqual(self.GUI.rank_labels[0].cget('text'), '8')
-
+        self.assertEqual(self.GUI.file_labels[0].cget('text'), 'a')
         
         #act 
         self.GUI.flipBoardEachTurn.set(True)
         self.GUI.game.turn = 'Black'
-        self.GUI.game.highlightMoves(self.GUI.game, self.GUI.game[6, 1])#Highlight black pawn
+        self.GUI.game.highlightMoves(self.GUI.game, self.GUI.game[6, 1])#Highlight black pawn b7
         self.GUI.updateBoard()
 
         # assert
-        self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'Black')
-        self.assertEqual(self.GUI.buttons[2][1].cget('bg'), 'gold') # Square in front of highlighted pawn
+        self.assertEqual(self.GUI.buttons[1][7].cget('fg'), 'Black')
+        self.assertEqual(self.GUI.buttons[2][6].cget('bg'), 'gold') # Square in front of highlighted pawn
         self.assertEqual(self.GUI.rank_labels[0].cget('text'), '1')
+        self.assertEqual(self.GUI.file_labels[0].cget('text'), 'h')
 
-        
         #act 
         self.GUI.flipBoardEachTurn.set(False)
         self.GUI.game.turn = 'Black'
@@ -114,7 +114,6 @@ class GUITestCase(unittest.TestCase):
         # assert
         self.assertEqual(self.GUI.buttons[1][0].cget('fg'), 'White')
         self.assertEqual(self.GUI.rank_labels[0].cget('text'), '8')
-
     
     def test_WhenCheckPosition_CheckMessagePrinted(self):
         # arrange 

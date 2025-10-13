@@ -49,7 +49,7 @@ class StockfishClient:
         api_key: Optional[str] = None
     ):
         """
-        Initialize Stockfish API client.
+        Initialize Stockfish API client.+
         
         Args:
             base_url: Base URL for the API

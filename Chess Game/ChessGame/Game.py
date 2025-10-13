@@ -27,7 +27,7 @@ class Game:
         self.winMethod ='' # String which holds the way in which player won (e.g. 'checkmate')     
         self.board = [] # A matrix of all the pieces in the board
         self.first = None # The first piece that the player has clicked (on button press)
-        self.second = None # The second piece the palyer has clicked
+        self.second = None # The second piece the player has clicked
         self.turn = 'White' # The curren turn
         self.saved = False # Records whether the player has chosen to save the game
         self.moveNumber = 1
