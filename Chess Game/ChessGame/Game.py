@@ -5,6 +5,7 @@
 # import pickle
 import datetime
 from ChessGame.Pieces import *
+from ChessGame.Player import Player
 # import os
 
 ####################  Define my pieces  #############################
@@ -12,15 +13,21 @@ class Game:
     '''
     A class which contains one instance of a game. 
     '''
-    def __init__(self, pieces=None):
+    def __init__(self, pieces=None, whitePlayer=None, blackPlayer=None):
         self.gameOver = False
         self.winner = None
-        self.whitePlayerName = '' # Name of white player
-        self.blackPlayerName = '' # Name of black player
+        if whitePlayer == None:
+            self.whitePlayer = Player('Player1', 'human')
+        else:
+            self.whitePlayer = whitePlayer
+        if blackPlayer == None:
+            self.blackPlayer = Player('Player2', 'human')
+        else:
+            self.blackPlayer = blackPlayer
         self.winMethod ='' # String which holds the way in which player won (e.g. 'checkmate')     
         self.board = [] # A matrix of all the pieces in the board
         self.first = None # The first piece that the player has clicked (on button press)
-        self.second = None # The second piece the palyer has clicked
+        self.second = None # The second piece the player has clicked
         self.turn = 'White' # The curren turn
         self.saved = False # Records whether the player has chosen to save the game
         self.moveNumber = 1
@@ -94,7 +101,7 @@ class Game:
 
         '''
         time=datetime.datetime.strftime(datetime.datetime.now(),"%Y_%m_%d_%H_%M_%S")
-        self.gameCode = self.whitePlayerName + '_' + self.blackPlayerName + '_' + time
+        self.gameCode = self.whitePlayer.name + '_' + self.blackPlayer.name + '_' + time
         return
     
     def checkMove(self):
@@ -198,7 +205,6 @@ class Game:
         else:
             self.halfMoveClock += 1
 
-
     def makeMove(self):
         self.updateHalfMoveClock()  
         firstLoc = self.first.loc
@@ -301,6 +307,8 @@ class Game:
         self.gameOver = True
         
     def __getitem__(self, loc):
+        if type(loc) == str:
+            loc = [int(loc[1])-1, ord(loc[0])-97]
         if loc[0]>7 or loc[0]<0 or loc[1]>7 or loc[1]<0:
             return False
         else:

@@ -9,4 +9,4 @@ import ChessGame
 
 def start():
     GUI = ChessGame.GUI()
-    GUI.mainMenu()
+    GUI.UI_mainMenu()
