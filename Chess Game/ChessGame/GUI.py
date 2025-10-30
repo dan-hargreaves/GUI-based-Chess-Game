@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import tkinter as tk
 from ChessGame import Game, Player
+from ChessGame import APIs
 import pickle
 import datetime
 import os
@@ -15,10 +16,12 @@ class GUI():
         else:
             self.root = root
         self.flipBoardEachTurn = tk.BooleanVar(value = False)
-        self.root.geometry('900x700')
+        self.root.geometry('900x900')
         self.root.protocol("WM_DELETE_WINDOW", lambda: self.root.destroy())
         self.whitePlayer_display_name = ""
         self.blackPlayer_display_name = ""
+        self.resign_btn = None
+        self.flipBoardToggle = None
     
     def saveGame(self):
         self.game.saved = True
@@ -42,24 +45,27 @@ class GUI():
             
     def viewSavedGame(self, fileName):
         with open(fileName, "rb") as openfile:
-            game = pickle.load(openfile)
-        if game.gameOver:
-            self.UI_chessBoard_inactive(game)
+            self.game = pickle.load(openfile)
+
+        if self.game.gameOver:
+            self.viewBoard()
         else:
-            self.playGame(game)
+            self.playGame()
         
-    def playGame(self, game):
+    def playGame(self):
         self.clear()
-        self.game = game  
         self.buttons = []
+        if self.game.whitePlayer.type == 'computer' or self.game.blackPlayer.type == 'computer':
+            self.computer = APIs.StockfishClient()
         self.viewBoard()
       
     def backgroundColour(self, piece):
-        selected_piece_colour = "light green"
-        black_square_colour = "royal blue"
-        white_square_colour = "wheat1"
-        possible_move_colour = "gold"
-        possible_capture_colour = "pink"
+        selected_piece_colour = "#f6f669"      # Bright yellow for selected piece
+        black_square_colour = "#769656"          # Green-brown for dark squares
+        white_square_colour = "#eeeed2"         # Cream for light squares
+        possible_move_colour = "#baca44"        # Yellow-green for possible moves (on light squares)
+        possible_capture_colour = "#f56c6c"     # Red for possible captures (on light squares)
+       
         if piece.bg == 0:
             if (piece.loc[0] + piece.loc[1]) % 2 == 0:
                 colour = black_square_colour
@@ -78,10 +84,16 @@ class GUI():
         self.UI_gameOver()
         
     def flipOrientation(self):
-        if self.flipBoardEachTurn.get() == True and self.game.turn == 'Black':
-            return True
+        if self.game.blackPlayer.type == 'computer':
+            flip = False
+        elif self.game.whitePlayer.type == 'computer':
+            flip = True
         else:
-            return False
+            if self.flipBoardEachTurn.get() == True and self.game.turn == 'Black':
+                flip = True
+            else:
+                flip = False
+        return flip
                 
     def transformPieceLocation(self, loc):
         if self.flipOrientation():
@@ -136,48 +148,75 @@ class GUI():
         window.destroy()
         self.endOfMove()
         self.updateBoard()
-        return
     
+    def checkGameOver(self):
+        self.game.checkGameOver()
+        if self.game.gameOver == True:
+            self.game.deHighlightMoves()
+            self.UI_gameOver()
+            
     def endOfMove(self):
         self.clearText()
         self.game.deHighlightMoves()
-        self.game.checkGameOver()
-        if self.game.gameOver == True:
-            self.UI_gameOver()
+        self.checkGameOver()
+        self.game.first = None
+        self.game.second = None
+        self.displayTurn()
+        if self.game.inCheck() == True:
+            self.printTxt(self.game.turn + ' is in check!')
         else:
-            self.game.first = None
-            self.game.second = None
-            self.displayTurn()
-            if self.game.inCheck() == True:
-                self.printTxt(self.game.turn + ' is in check!')
-            else:
-                self.displayMoveNumber()
-      
+            self.displayMoveNumber()
+        
+        if self.game.turn == 'White' and self.game.whitePlayer.type == 'computer' or self.game.turn == 'Black' and self.game.blackPlayer.type == 'computer':
+            self.playComputerMove()
+                
+    
+    def playComputerMove(self):
+        self.updateBoard()
+        self.root.update_idletasks()
+        fen_str = self.game.FEN_string()
+        (result, APIError, NetworkError, ValueError) = self.computer.getStockfishMove(fen_str)
+        if result.success:
+            self.game.first = self.game[result.best_move[0:2]]
+            self.game.second = self.game[result.best_move[2:4]]
+            try:
+                promotePawn = self.game.makeMove()
+            except:
+                self.printTxt(result.best_move)
+        else:
+            self.printTxt("Error connecting to chess engine")
+        
+        self.updateBoard()
+        self.root.update_idletasks()
+        self.checkGameOver()
+
     def gameOverButton(self, window):
         window.destroy()
-        self.UI_chessBoard_inactive(self.game)
-        return
+        self.updateBoard()
     
     def printTxt(self, text):
         self.textbox.configure(state = 'normal')
         self.textbox.delete('1.0', 'end')
         self.textbox.insert('end', text + '\n')
         self.textbox.config(state = 'disabled')
-        return
     
     def displayTurn(self):
         self.textbox_turn.configure(state = 'normal')
         self.textbox_turn.delete('1.0', 'end')
         self.textbox_turn.insert('end', self.game.turn + ' to move.')
         self.textbox_turn.config(state = 'disabled')
-        return
-    
+        
+    def displayWinner(self):
+        self.textbox_turn.configure(state = 'normal')
+        self.textbox_turn.delete('1.0', 'end')
+        self.textbox_turn.insert('end', f"{self.game.winner} won by {self.game.winMethod}")
+        self.textbox_turn.config(state = 'disabled') 
+        
     def displayMoveNumber(self):
         self.textbox_move.configure(state = 'normal')
         self.textbox_move.delete('1.0', 'end')
         self.textbox_move.insert('end', 'Move ' + str(self.game.moveNumber))
         self.textbox_move.config(state = 'disabled')
-        return   
     
     def clearText(self):
         self.textbox.configure(state='normal')
@@ -234,13 +273,13 @@ class GUI():
             player1, player2 = players[0], players[1]
         
         # Create and configure game
-        game = Game.Game()
-        game.whitePlayer = player1
-        game.blackPlayer = player2
+        self.game = Game.Game()
+        self.game.whitePlayer = player1
+        self.game.blackPlayer = player2
         
-        game.createGameCode()
-        self.playGame(game)   
-        
+        self.game.createGameCode()
+        self.playGame()   
+                
     def updateBoard(self):
         ranks = "87654321"
         files = "abcdefgh"
@@ -257,6 +296,8 @@ class GUI():
             
         self.player_textbox_top.config(text=top_player_text)
         self.player_textbox_bottom.config(text=bottom_player_text)     
+        button_state = 'disabled' if self.game.gameOver else 'normal'
+        button_cursor = 'arrow' if self.game.gameOver else 'hand2'
         for i in range(8):
             # row = calcRowNumber(i)
             self.rank_labels[i].config(text=ranks[i])
@@ -266,8 +307,18 @@ class GUI():
                 buttons_temp[i][j].config(
                     text = piece.display_text,
                     bg = self.backgroundColour(piece),
-                    fg = piece.colour
+                    fg = piece.colour,
+                    disabledforeground= piece.colour,
+                    cursor=button_cursor,
+                    state=button_state,
                     )
+        if self.game.gameOver:
+            if self.resign_btn != None:
+                self.resign_btn.grid_remove()
+                self.resign_btn = None
+            if self.flipBoardToggle != None:
+                self.flipBoardToggle.pack_forget()
+                self.flipBoardToggle = None
 
     def UI_gameOver(self):
         top = tk.Toplevel(self.root)
@@ -463,98 +514,262 @@ class GUI():
         else:
             # If already saved, just save immediately
             self.saveGame()
-        
+            
     def UI_chessBoard(self):
+        # Configure root window
+        self.root.configure(bg='#f0f0f0')
+        
         # --- Main container frame (holds board + side panel) ---
-        main_frame = tk.Frame(self.root, padx=10, pady=10)
+        main_frame = tk.Frame(self.root, bg='#f0f0f0', padx=20, pady=20)
         main_frame.pack()
         
-        # --- Left player frame ---
-        player_frame = tk.Frame(main_frame, padx=10, pady=10)
-        player_frame.grid(row=0, column=0, sticky="n")
-
-        top_label = tk.Label(player_frame, text=self.game.blackPlayer.display_name, font=("Arial", 11, "bold"))
-        top_label.pack(pady=(10, 5))
+        # --- Left: Board section (with player names) ---
+        board_section = tk.Frame(main_frame, bg='#f0f0f0', padx=10, pady=10)
+        board_section.grid(row=0, column=0, sticky="n")
+        
+        # --- Top player frame (Black) ---
+        top_player_frame = tk.Frame(board_section, bg='#2c3e50', relief='solid', borderwidth=2, padx=15, pady=8)
+        top_player_frame.pack(pady=(0, 10))
+        
+        top_label = tk.Label(top_player_frame, 
+                            text=self.game.blackPlayer.display_name, 
+                            font=("Arial", 12, "bold"),
+                            bg='#2c3e50',
+                            fg='white')
+        top_label.pack()
         self.player_textbox_top = top_label
-    
-        # --- Board frame ---
-        board_frame = tk.Frame(player_frame, bd=2, relief="sunken", padx=10, pady=10)
-        board_frame.pack(pady=(10, 5))
-    
-        # --- Right: Controls frame ---
-        control_frame = tk.Frame(main_frame, padx=15, pady=5)
-        control_frame.grid(row=0, column=1, sticky="n")
-    
+        
+        # --- Board frame with enhanced border ---
+        board_outer_frame = tk.Frame(board_section, bg='#34495e', relief='solid', borderwidth=4, padx=2, pady=2)
+        board_outer_frame.pack()
+        
+        board_frame = tk.Frame(board_outer_frame, bg='#34495e', padx=3, pady=3)
+        board_frame.pack()
+        
         # --- Chessboard buttons ---
         self.buttons = []
         self.rank_labels = []
         self.file_labels = []
-    
+        
+        # File labels (a-h) at bottom
         for i in range(8):
-            label = tk.Label(board_frame, font=("Arial", 9))
+            label = tk.Label(board_frame, 
+                            font=("Arial", 10, "bold"),
+                            bg='#34495e',
+                            fg='#ecf0f1',
+                            width=2)
             label.grid(row=9, column=i+1)
             self.file_labels.append(label)
-
-            label = tk.Label(board_frame, font=("Arial", 9)) #Rank text is handled by updateBoard()
+        
+        # Rank labels (1-8) on left
+        for i in range(8):
+            label = tk.Label(board_frame, 
+                            font=("Arial", 10, "bold"),
+                            bg='#34495e',
+                            fg='#ecf0f1',
+                            width=2)
             label.grid(row=i+1, column=0)
             self.rank_labels.append(label)
-    
+        
+        # Chess piece buttons
+        button_state = 'disabled' if self.game.gameOver else 'normal'
+        button_cursor = 'arrow' if self.game.gameOver else 'hand2'
         for i in range(8):
             row_buttons = []
             for j in range(8):
-                piece = self.game[i, j]
-                b = tk.Button( #Chess piece text is handled by updateBoard()
+                b = tk.Button(
                     board_frame,
                     height=2,
                     width=4,
-                    font=("Helvetica", 16, "bold"),
+                    font=("Helvetica", 18, "bold"),
+                    relief='flat',
+                    borderwidth=0,
+                    cursor=button_cursor,
+                    state=button_state,
                     command=lambda loc=[i, j]: self.buttonPressed(loc)
                 )
-                b.grid(row=8-i, column=j+1)  # show white at bottom
+                b.grid(row=8-i, column=j+1, padx=0, pady=0)
                 row_buttons.append(b)
             self.buttons.append(row_buttons)
             
         self.board_frame = board_frame
         
-        # --- Side controls ---
-        self.textbox_move = tk.Text(control_frame, height=2, width=15)
-        self.textbox_move.grid(row=0, column=0, padx=5, pady=3)
-    
-        self.textbox_turn = tk.Text(control_frame, height=2, width=15)
-        self.textbox_turn.grid(row=0, column=1, padx=5, pady=3)
-    
-        tk.Button(control_frame, text="Main Menu", width=16, height=2, command=self.UI_saveGame).grid(row=1, column=0, padx=5, pady=3)
-        tk.Button(control_frame, text="Save Game", width=16, height=2, command=self.saveGame).grid(row=1, column=1, padx=5, pady=3)
-    
-        if not self.game.gameOver:
-            tk.Button(control_frame, text="Resign", width=16, height=2, command=self.resignButton).grid(row=2, column=0, padx=5, pady=3)
-    
-        self.textbox = tk.Text(control_frame, height=4, width=30)
-        self.textbox.grid(row=3, column=0, columnspan=2, pady=(10, 5))
-    
-        self.flipBoardToggle = tk.Checkbutton(
-            control_frame,
-            text="Flip Board",
-            variable=self.flipBoardEachTurn,
-            onvalue=True,
-            offvalue=False,
-            command=self.updateBoard
-        )
-        self.flipBoardToggle.grid(row=4, column=0, sticky="w", pady=(5, 0))
-    
-        # --- Bottom player label ---
-        bottom_label = tk.Label(player_frame, text=self.game.whitePlayer.display_name, font=("Arial", 11, "bold"))
-        bottom_label.pack(pady=(5, 10))
+        # --- Bottom player frame (White) ---
+        bottom_player_frame = tk.Frame(board_section, bg='#ecf0f1', relief='solid', borderwidth=2, padx=15, pady=8)
+        bottom_player_frame.pack(pady=(10, 0))
+        
+        bottom_label = tk.Label(bottom_player_frame, 
+                               text=self.game.whitePlayer.display_name, 
+                               font=("Arial", 12, "bold"),
+                               bg='#ecf0f1',
+                               fg='#2c3e50')
+        bottom_label.pack()
         self.player_textbox_bottom = bottom_label
         
+        # --- Right: Controls frame ---
+        control_frame = tk.Frame(main_frame, bg='#f0f0f0', padx=15, pady=5)
+        control_frame.grid(row=0, column=1, sticky="n")
+        
+        # Game info section
+        info_frame = tk.Frame(control_frame, bg='white', relief='solid', borderwidth=1, padx=10, pady=10)
+        info_frame.grid(row=0, column=0, columnspan=2, sticky='ew', pady=(0, 10))
+        
+        # Move info
+        move_label = tk.Label(info_frame, text="Current Move:", font=("Arial", 9, "bold"), bg='white', fg='#7f8c8d')
+        move_label.grid(row=0, column=0, sticky='w', pady=(0, 3))
+        
+        self.textbox_move = tk.Text(info_frame, 
+                                   height=2, 
+                                   width=30,
+                                   font=("Arial", 10),
+                                   relief='flat',
+                                   bg='#f8f9fa',
+                                   borderwidth=0,
+                                   padx=5,
+                                   pady=5)
+        self.textbox_move.grid(row=1, column=0, pady=(0, 8))
+        
+        # Turn info
+        turn_label = tk.Label(info_frame, text="Turn:", font=("Arial", 9, "bold"), bg='white', fg='#7f8c8d')
+        turn_label.grid(row=2, column=0, sticky='w', pady=(0, 3))
+        
+        self.textbox_turn = tk.Text(info_frame, 
+                                   height=2, 
+                                   width=30,
+                                   font=("Arial", 10),
+                                   relief='flat',
+                                   bg='#f8f9fa',
+                                   borderwidth=0,
+                                   padx=5,
+                                   pady=5)
+        self.textbox_turn.grid(row=3, column=0)
+        
+        # Action buttons
+        button_frame = tk.Frame(control_frame, bg='#f0f0f0')
+        button_frame.grid(row=1, column=0, columnspan=2, pady=(5, 0))
+        
+        main_menu_btn = tk.Button(button_frame, 
+                                 text="Main Menu", 
+                                 width=16, 
+                                 height=2,
+                                 font=("Arial", 10, "bold"),
+                                 bg='#95a5a6',
+                                 fg='white',
+                                 activebackground='#7f8c8d',
+                                 relief='raised',
+                                 borderwidth=2,
+                                 cursor='hand2',
+                                 command=self.UI_saveGame)
+        main_menu_btn.grid(row=0, column=0, padx=3, pady=3)
+        
+        save_btn = tk.Button(button_frame, 
+                            text="Save Game", 
+                            width=16, 
+                            height=2,
+                            font=("Arial", 10, "bold"),
+                            bg='#3498db',
+                            fg='white',
+                            activebackground='#2980b9',
+                            relief='raised',
+                            borderwidth=2,
+                            cursor='hand2',
+                            command=self.saveGame)
+        save_btn.grid(row=1, column=0, padx=3, pady=3)
+        
+        # Hover effects
+        def on_enter_menu(e):
+            main_menu_btn.config(bg='#7f8c8d')
+        def on_leave_menu(e):
+            main_menu_btn.config(bg='#95a5a6')
+        def on_enter_save(e):
+            save_btn.config(bg='#2980b9')
+        def on_leave_save(e):
+            save_btn.config(bg='#3498db')
+        
+        main_menu_btn.bind("<Enter>", on_enter_menu)
+        main_menu_btn.bind("<Leave>", on_leave_menu)
+        save_btn.bind("<Enter>", on_enter_save)
+        save_btn.bind("<Leave>", on_leave_save)
+        
+        # Resign button (if game not over)
+        if not self.game.gameOver:
+            self.resign_btn = tk.Button(button_frame, 
+                                  text="Resign", 
+                                  width=16, 
+                                  height=2,
+                                  font=("Arial", 10, "bold"),
+                                  bg='#e74c3c',
+                                  fg='white',
+                                  activebackground='#c0392b',
+                                  relief='raised',
+                                  borderwidth=2,
+                                  cursor='hand2',
+                                  command=self.resignButton)
+            self.resign_btn.grid(row=2, column=0, padx=3, pady=3)
+            
+            def on_enter_resign(e):
+                self.resign_btn.config(bg='#c0392b')
+            def on_leave_resign(e):
+                self.resign_btn.config(bg='#e74c3c')
+            
+            self.resign_btn.bind("<Enter>", on_enter_resign)
+            self.resign_btn.bind("<Leave>", on_leave_resign)
+        
+        # Move history / messages section
+        message_frame = tk.Frame(control_frame, bg='white', relief='solid', borderwidth=1, padx=5, pady=5)
+        message_frame.grid(row=2, column=0, columnspan=2, pady=(10, 5), sticky='ew')
+        
+        message_label = tk.Label(message_frame, 
+                                text="Messages:", 
+                                font=("Arial", 9, "bold"), 
+                                bg='white', 
+                                fg='#7f8c8d')
+        message_label.pack(anchor='w', pady=(0, 3))
+        
+        self.textbox = tk.Text(message_frame, 
+                              height=4, 
+                              width=30,
+                              font=("Arial", 9),
+                              relief='flat',
+                              bg='#f8f9fa',
+                              wrap='word',
+                              padx=5,
+                              pady=5)
+        self.textbox.pack(fill='both', expand=True)
+        
+        # Options section
+        options_frame = tk.Frame(control_frame, bg='#f0f0f0')
+        options_frame.grid(row=3, column=0, columnspan=2, pady=(5, 0), sticky='w')
+        
+        if not self.game.gameOver:
+            self.flipBoardToggle = tk.Checkbutton(
+                options_frame,
+                text="Flip Board Each Turn",
+                variable=self.flipBoardEachTurn,
+                onvalue=True,
+                offvalue=False,
+                font=("Arial", 9),
+                bg='#f0f0f0',
+                activebackground='#f0f0f0',
+                cursor='hand2',
+                command=self.updateBoard
+            )
+            self.flipBoardToggle.pack(anchor='w')
+        
         # --- Update the board initially ---
-        self.updateBoard()   
+        self.updateBoard()        
             
     def viewBoard(self):
         self.clear()      
         self.UI_chessBoard()
-        self.displayTurn()
+        if self.game.gameOver:
+            self.displayWinner()
+        else:
+            self.displayTurn()
         self.displayMoveNumber()
+        if self.game.turn == 'White' and self.game.whitePlayer.type == 'computer' or self.game.turn == 'Black' and self.game.blackPlayer.type == 'computer':
+            # self.updateBoard()
+            self.playComputerMove()
         self.root.mainloop()
         
     def UI_promotePawn(self):
@@ -565,150 +780,7 @@ class GUI():
         tk.Button(top, text='Bishop', command=lambda window=top: self.promotionButton(window,'Bishop')).grid(row=2, column=0)
         tk.Button(top, text='Rook', command=lambda window=top: self.promotionButton(window,'Rook')).grid(row=2, column=1)
         top.mainloop()
-           
-    def UI_chessBoard_inactive(self, game):
-        self.clear()
         
-        # Configure root window
-        self.root.configure(bg='#f0f0f0')
-        
-        # Main container
-        main_frame = tk.Frame(self.root, bg='#f0f0f0', padx=20, pady=20)
-        main_frame.grid(row=0, column=0)
-        
-        # Winner announcement banner
-        winner_text = f"{game.winner} won by {game.winMethod}"
-        
-        # Determine banner color based on winner
-        if game.winner.lower() == 'white':
-            banner_bg = '#ecf0f1'
-            banner_fg = '#2c3e50'
-            icon = '👑'
-        else:
-            banner_bg = '#2c3e50'
-            banner_fg = '#ecf0f1'
-            icon = '♚'
-        
-        banner_frame = tk.Frame(main_frame, bg=banner_bg, relief='solid', borderwidth=2)
-        banner_frame.grid(row=0, column=0, columnspan=10, sticky='ew', pady=(0, 15))
-        
-        # Icon and text in banner
-        banner_content = tk.Frame(banner_frame, bg=banner_bg)
-        banner_content.pack(pady=10)
-        
-        tk.Label(banner_content, 
-                text=icon, 
-                font=('Arial', 20),
-                bg=banner_bg,
-                fg=banner_fg).pack(side='left', padx=(0, 10))
-        
-        tk.Label(banner_content,
-                text=winner_text,
-                font=('Arial', 14, 'bold'),
-                bg=banner_bg,
-                fg=banner_fg).pack(side='left')
-        
-        # Board title
-        board_title = tk.Label(main_frame,
-                              text="Final Position",
-                              font=('Arial', 12, 'bold'),
-                              bg='#f0f0f0',
-                              fg='#34495e')
-        board_title.grid(row=1, column=0, columnspan=10, pady=(0, 10))
-        
-        # Chess board frame with border
-        board_frame = tk.Frame(main_frame, bg='#34495e', relief='solid', borderwidth=3)
-        board_frame.grid(row=2, column=1, columnspan=8, rowspan=8, padx=5, pady=5)
-        
-        # Render chess pieces
-        for i in range(8):
-            for j in range(8):
-                piece = game[i, j]
-                b = tk.Label(
-                        board_frame, 
-                        text=piece.display_text,
-                        fg=piece.colour,
-                        bg=self.backgroundColour(piece),
-                        height=2, 
-                        width=4, 
-                        font='Helvetica 16 bold',
-                        relief='flat',
-                        borderwidth=0
-                )
-                b.grid(row=7-i, column=j, sticky='nsew')  # Flip board to show white at bottom
-        
-        # File labels (a-h) at bottom
-        files = "abcdefgh"
-        for col in range(8):
-            tk.Label(main_frame, 
-                    text=files[col], 
-                    font=("Arial", 10, 'bold'),
-                    bg='#f0f0f0',
-                    fg='#7f8c8d').grid(row=10, column=col+1)
-        
-        # Rank labels (1-8) on left side
-        ranks = "12345678"
-        for row in range(8):
-            tk.Label(main_frame, 
-                    text=ranks[7-row], 
-                    font=("Arial", 10, 'bold'),
-                    bg='#f0f0f0',
-                    fg='#7f8c8d').grid(row=row+2, column=0, padx=(0, 5))
-        
-        # Button frame
-        button_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        button_frame.grid(row=11, column=0, columnspan=10, pady=(20, 0))
-        
-        # Main Menu button
-        main_menu_btn = tk.Button(button_frame,
-                                 text='Main Menu',
-                                 font=('Arial', 11, 'bold'),
-                                 height=2,
-                                 width=16,
-                                 bg='#3498db',
-                                 fg='white',
-                                 activebackground='#2980b9',
-                                 activeforeground='white',
-                                 relief='raised',
-                                 borderwidth=2,
-                                 cursor='hand2',
-                                 command=self.UI_mainMenu)
-        main_menu_btn.grid(row=0, column=0, padx=5)
-        
-        # Saved Games button
-        saved_games_btn = tk.Button(button_frame,
-                                   text='Saved Games',
-                                   font=('Arial', 11, 'bold'),
-                                   height=2,
-                                   width=16,
-                                   bg='#9b59b6',
-                                   fg='white',
-                                   activebackground='#8e44ad',
-                                   activeforeground='white',
-                                   relief='raised',
-                                   borderwidth=2,
-                                   cursor='hand2',
-                                   command=self.UI_savedGamesMenu)
-        saved_games_btn.grid(row=0, column=1, padx=5)
-        
-        # Hover effects
-        def on_enter_main_menu(e):
-            main_menu_btn.config(bg='#2980b9')
-        
-        def on_leave_main_menu(e):
-            main_menu_btn.config(bg='#3498db')
-        
-        def on_enter_saved_games(e):
-            saved_games_btn.config(bg='#8e44ad')
-        
-        def on_leave_saved_games(e):
-            saved_games_btn.config(bg='#9b59b6')
-        
-        main_menu_btn.bind("<Enter>", on_enter_main_menu)
-        main_menu_btn.bind("<Leave>", on_leave_main_menu)
-        saved_games_btn.bind("<Enter>", on_enter_saved_games)
-        saved_games_btn.bind("<Leave>", on_leave_saved_games)
-        self.root.mainloop()
                   
     def UI_savedGamesMenu(self):
        self.clear()
@@ -718,11 +790,7 @@ class GUI():
        
        # Main container frame
        main_frame = tk.Frame(self.root, bg='#f0f0f0', padx=40, pady=30)
-       main_frame.grid(row=0, column=0, sticky='nsew')
-       
-       # Configure grid weights for centering
-       self.root.grid_rowconfigure(0, weight=1)
-       self.root.grid_columnconfigure(0, weight=1)
+       main_frame.pack()
        
        # Title
        title_label = tk.Label(main_frame, 
@@ -755,7 +823,7 @@ class GUI():
            for i in range(numGames):
                fileName = filePaths[i]
                wName, bName = self.getPlayerNames(fileName)
-               options.append(f"{i}: {wName} vs {bName}")
+               options.append(f"{i+1}: {wName} vs {bName}")
            
            # Dropdown menu with enhanced styling
            variable = tk.StringVar(self.root)
@@ -798,7 +866,7 @@ class GUI():
                               relief='raised',
                               borderwidth=2,
                               cursor='hand2',
-                              command=lambda: self.viewSavedGame(filePaths[int(variable.get().split(':')[0])]))
+                              command=lambda: self.viewSavedGame(filePaths[int(variable.get().split(':')[0])-1]))
            open_btn.grid(row=0, column=0, padx=10)
            
            # Main Menu button
@@ -907,7 +975,7 @@ class GUI():
         
         # --- Main Container ---
         container = tk.Frame(self.root, padx=20, pady=20, bg="#f7f7f7")
-        container.grid(row=0, column=0, sticky="nsew")
+        container.pack()
         self.root.configure(bg="#f7f7f7")
         
         # --- Title ---
@@ -1045,7 +1113,7 @@ class GUI():
         # Chess piece decorative element (optional - uses Unicode chess symbols)
         decoration_label = tk.Label(main_frame,
                                    text="♔ ♕ ♖ ♗ ♘ ♙",
-                                   font=('Arial', 16),
+                                   font=('Arial', 32),
                                    bg='#f0f0f0',
                                    fg='#34495e')
         decoration_label.grid(row=1, column=0, columnspan=2, pady=(0, 20))

@@ -124,20 +124,12 @@ class StockfishClient:
         
         for attempt in range(self.max_retries + 1):
             try:
-                self.logger.debug(f"Attempt {attempt + 1}: {method} {url}")
-                
-                if method.upper() == 'GET':
-                    response = self.session.get(
-                        url, 
-                        params=data, 
-                        timeout=self.timeout
-                    )
-                else:
-                    response = self.session.post(
-                        url, 
-                        json=data, 
-                        timeout=self.timeout
-                    )
+                self.logger.debug(f"Attempt {attempt + 1}: {method} {url}") 
+                response = self.session.get(
+                    url, 
+                    params=data, 
+                    timeout=self.timeout
+                )
                 
                 # Handle HTTP errors
                 response.raise_for_status()
@@ -193,12 +185,27 @@ class StockfishClient:
         # Parse successful response
         return StockfishResponse(
             success=True,
-            best_move=data.get('bestmove'),
+            best_move=data.get('bestmove')[9:13],
             evaluation=data.get('evaluation'),
             mate=data.get('mate'),
             line=data.get('line')
         )
     
+    def getStockfishMove(self, fen_str):            
+        # Setup logging
+        logging.basicConfig(level=logging.INFO)
+        
+        # Using context manager (recommended)
+        with StockfishClient() as client:
+            try:
+                result = client.analyze_position(
+                    fen=fen_str,
+                    depth=12
+                )
+                return (result, False, False, False)
+            except:
+                return (result, APIError, NetworkError, ValueError)
+                
     def __enter__(self):
         """Context manager entry"""
         return self

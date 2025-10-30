@@ -37,11 +37,11 @@ class GUITestCase(unittest.TestCase):
         self.GUI.UI_chessBoard()
 
         # assert
-        self.assertEqual(self.GUI.buttons[0][0].cget('bg'), "light green")
-        self.assertEqual(self.GUI.buttons[0][2].cget('bg'), "royal blue")
-        self.assertEqual(self.GUI.buttons[0][1].cget('bg'), "wheat1")
-        self.assertEqual(self.GUI.buttons[1][0].cget('bg'), "gold")
-        self.assertEqual(self.GUI.buttons[6][0].cget('bg'), "pink")
+        self.assertEqual(self.GUI.buttons[0][0].cget('bg'), "#f6f669")
+        self.assertEqual(self.GUI.buttons[0][2].cget('bg'), "#769656")
+        self.assertEqual(self.GUI.buttons[0][1].cget('bg'), "#eeeed2")
+        self.assertEqual(self.GUI.buttons[1][0].cget('bg'), "#baca44")
+        self.assertEqual(self.GUI.buttons[6][0].cget('bg'), "#f56c6c")
         
         # Ensure squares are highlighted pink for en passant
         #act
@@ -51,7 +51,7 @@ class GUITestCase(unittest.TestCase):
         self.GUI.updateBoard()
 
         # assert
-        self.assertEqual(self.GUI.buttons[5][2].cget('bg'), "pink")
+        self.assertEqual(self.GUI.buttons[5][2].cget('bg'), "#f56c6c")
 
     def test_WhenSelectTwoWhitePieces_CheckSecondPieceHighlighted(self):
         # arrange 
@@ -102,7 +102,7 @@ class GUITestCase(unittest.TestCase):
 
         # assert
         self.assertEqual(self.GUI.buttons[1][7].cget('fg'), 'Black')
-        self.assertEqual(self.GUI.buttons[2][6].cget('bg'), 'gold') # Square in front of highlighted pawn
+        self.assertEqual(self.GUI.buttons[2][6].cget('bg'), '#baca44') # Square in front of highlighted pawn
         self.assertEqual(self.GUI.rank_labels[0].cget('text'), '1')
         self.assertEqual(self.GUI.file_labels[0].cget('text'), 'h')
 
@@ -139,3 +139,16 @@ class GUITestCase(unittest.TestCase):
            
         # assert
         self.GUI.printTxt.assert_called_with('White is in check!')
+        
+    def test_WhenNewGameVSComputer_CheckPlayComputerCalled(self):
+        # arrange 
+        self.GUI.game.turn = 'White' 
+        self.GUI.game.whitePlayer.type = 'computer'
+        self.GUI.playComputerMove = MagicMock()
+
+    
+        # act 
+        self.GUI.playGame()
+           
+        # assert
+        self.assertEqual(self.GUI.playComputerMove.call_count, 1)

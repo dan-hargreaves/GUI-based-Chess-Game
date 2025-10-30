@@ -205,7 +205,6 @@ class Game:
         else:
             self.halfMoveClock += 1
 
-
     def makeMove(self):
         self.updateHalfMoveClock()  
         firstLoc = self.first.loc
@@ -308,6 +307,8 @@ class Game:
         self.gameOver = True
         
     def __getitem__(self, loc):
+        if type(loc) == str:
+            loc = [int(loc[1])-1, ord(loc[0])-97]
         if loc[0]>7 or loc[0]<0 or loc[1]>7 or loc[1]<0:
             return False
         else:

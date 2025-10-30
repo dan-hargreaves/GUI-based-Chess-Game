@@ -307,3 +307,13 @@ class GameTestCases(unittest.TestCase):
         
         # assert
         self.assertEqual(self.game.FEN_string(), 'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2')       
+
+    def test_CheckgetAttr_whenPassedString(self):
+        # arrange 
+        self.game = ChessGame.Game()
+        
+        # assert
+        self.assertEqual(self.game['a2'].__class__.__name__, 'Pawn')       
+        self.assertEqual(self.game['g8'].__class__.__name__, 'Knight')       
+
+      
